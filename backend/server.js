@@ -197,9 +197,9 @@ app.use(helmet({
 
 // 2. CORS configurado adequadamente
 app.use(cors({
-  origin: 'http://localhost:3000', // Permitir apenas o frontend na porta 3000
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature']
+  origin: config.cors.origin, // Valor definido no config
+  methods: config.cors.methods,
+  allowedHeaders: config.cors.allowedHeaders
 }));
 
 // 3. Rate limiting para prevenir brute force e DDoS

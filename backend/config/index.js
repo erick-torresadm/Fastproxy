@@ -1,23 +1,44 @@
 /**
  * Configurações da aplicação
  */
+const path = require('path');
+const fs = require('fs');
 
 // Carregar variáveis de ambiente baseado no ambiente
 const env = process.env.NODE_ENV || 'development';
 const dotenv = require('dotenv');
 
+// Definir o caminho para arquivos .env
+const envPath = path.resolve(__dirname, '..');
+const envFile = path.join(envPath, '.env');
+const envProdFile = path.join(envPath, '.env.production');
+const envTemplateFile = path.join(envPath, 'env.template');
+
+// Verificar se o arquivo .env existe
+if (!fs.existsSync(envFile) && !fs.existsSync(envProdFile)) {
+  console.warn('Arquivo .env não encontrado. Verificando template...');
+  
+  if (fs.existsSync(envTemplateFile)) {
+    console.log('Criando arquivo .env a partir do template...');
+    fs.copyFileSync(envTemplateFile, envFile);
+    console.log('Arquivo .env criado com sucesso!');
+  } else {
+    console.error('Arquivo env.template não encontrado. Configure manualmente o arquivo .env');
+  }
+}
+
 // Carregar arquivo .env apropriado baseado no ambiente
 if (env === 'production') {
   // Em produção, usar .env.production
-  const result = dotenv.config({ path: '.env.production' });
+  const result = dotenv.config({ path: envProdFile });
   if (result.error) {
     console.error('Erro ao carregar .env.production:', result.error);
     // Tentar o .env padrão como fallback
-    dotenv.config();
+    dotenv.config({ path: envFile });
   }
 } else {
   // Em outros ambientes (desenvolvimento, teste), usar .env
-  dotenv.config();
+  dotenv.config({ path: envFile });
 }
 
 const logger = require('../utils/logger');
@@ -33,7 +54,7 @@ const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
   logger.error(`Variáveis de ambiente faltando: ${missingEnvVars.join(', ')}`);
-  logger.info(`Crie um arquivo ${env === 'production' ? '.env.production' : '.env'} na raiz do projeto baseado no arquivo env.template`);
+  logger.info(`Crie um arquivo ${env === 'production' ? '.env.production' : '.env'} na pasta backend baseado no arquivo env.template`);
   process.exit(1);
 }
 
@@ -60,8 +81,8 @@ const config = {
   },
   
   // Configurações do servidor
-  port: parseInt(process.env.PORT || '3000', 10),
-  alternativePorts: [3001, 3002, 8080, 8081],
+  port: parseInt(process.env.PORT || '8080', 10),
+  alternativePorts: [8081, 8082, 3001, 3002],
   
   // Configurações do Stripe
   stripe: {
@@ -87,7 +108,7 @@ const config = {
   
   // Configurações de CORS
   cors: {
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature']
   },
