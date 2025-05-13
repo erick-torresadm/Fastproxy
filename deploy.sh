@@ -5,20 +5,20 @@ echo "Iniciando deploy do FastProxy..."
 # Puxar as últimas alterações do GitHub
 git pull
 
-# Instalar dependências do projeto principal
-npm install
+# Parar os containers existentes
+docker-compose -f fastproxy-deploy/docker-compose.yml down
 
-# Instalar dependências do backend
-cd backend
-npm install
-cd ..
+# Reconstruir as imagens (sem cache para garantir últimas alterações)
+docker-compose -f fastproxy-deploy/docker-compose.yml build --no-cache
 
-# Instalar dependências do frontend
-cd frontend
-npm install
-cd ..
+# Subir os containers
+docker-compose -f fastproxy-deploy/docker-compose.yml up -d
 
-# Reiniciar os serviços usando PM2
-pm2 reload all
+# Limpar imagens não utilizadas
+docker image prune -f
 
-echo "Deploy concluído com sucesso!" 
+echo "Deploy concluído com sucesso!"
+
+# Mostrar logs dos containers
+echo "Mostrando logs dos containers..."
+docker-compose -f fastproxy-deploy/docker-compose.yml logs -f 
