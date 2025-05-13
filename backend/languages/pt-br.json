@@ -1,0 +1,69 @@
+{
+  "site": {
+    "title": "FastProxy - Proxies Privados Socks5 e HTTPs",
+    "description": "Proxies privados com alta velocidade e estabilidade para suas operações"
+  },
+  "header": {
+    "home": "início",
+    "plans": "planos",
+    "contact": "contato",
+    "tutorial": "tutorial",
+    "access": "acessar",
+    "login": "login"
+  },
+  "hero": {
+    "title": "o proxy privado que você sempre quis.",
+    "subtitle": "conexões estáveis e alta performance para suas operações",
+    "cta": "pedir proxy",
+    "notice": "recebimento automático no whatsapp e email"
+  },
+  "features": {
+    "dedicatedIP": "IP dedicado",
+    "support": "suporte 24/7",
+    "anonymity": "alta anonimidade",
+    "speed": "alta velocidade",
+    "connections": "várias conexões"
+  },
+  "about": {
+    "title": "somos 100% digitais e sem burocracia",
+    "text": "IP dedicado a um usuário real, com até 99% de uptime e suporte responsivo em 1 minuto, disponível 24/7"
+  },
+  "benefits": {
+    "title": "o proxy que você sempre quis",
+    "subtitle": "conexões estáveis e suporte humanizado para sua operação",
+    "speed": {
+      "title": "velocidade imbatível",
+      "text": "servidores distribuídos estrategicamente pelo Brasil, garantindo máxima velocidade e performance onde quer que você esteja"
+    },
+    "operation": {
+      "title": "operação fluida",
+      "text": "desfrute da eficiência que nossos proxies trazem à sua operação, ajudando você a alcançar novos patamares de faturamento"
+    },
+    "ips": {
+      "title": "IPs dedicados de alta qualidade",
+      "text": "controle total de proxies de última geração, otimizados para maximizar o desempenho da sua operação"
+    },
+    "connections": {
+      "title": "adeus a conexões lentas",
+      "text": "proxies IPV4 e IPV6 que superam a lentidão de outras conexões, elevando a performance da sua operação a outro nível"
+    }
+  },
+  "pricing": {
+    "title": "planos com preços especiais",
+    "subtitle": "escolha o que melhor se encaixa no seu perfil",
+    "monthly": "mensal",
+    "annual": "anual",
+    "discount": "meses grátis",
+    "button": "contratar agora"
+  },
+  "faq": {
+    "title": "dúvidas frequentes",
+    "subtitle": "tudo que você precisa saber antes de adquirir"
+  },
+  "contact": {
+    "title": "entre em contato",
+    "subtitle": "estamos prontos para te atender",
+    "button": "enviar mensagem",
+    "whatsapp": "conversar no whatsapp"
+  }
+} 

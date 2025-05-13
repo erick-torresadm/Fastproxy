@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fastproxy-backend
+    restart: unless-stopped
+    expose:
+      - "8080"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - backend_logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - CORS_ORIGIN=https://fastproxy.com.br
+    networks:
+      - fastproxy-network
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fastproxy-api.rule=Host(`api.fastproxy.com.br`)"
+      - "traefik.http.routers.fastproxy-api.entrypoints=websecure"
+      - "traefik.http.routers.fastproxy-api.tls=true"
+      - "traefik.http.services.fastproxy-api.loadbalancer.server.port=8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fastproxy-frontend
+    restart: unless-stopped
+    expose:
+      - "3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - fastproxy-network
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fastproxy.rule=Host(`fastproxy.com.br`)"
+      - "traefik.http.routers.fastproxy.entrypoints=websecure"
+      - "traefik.http.routers.fastproxy.tls=true"
+      - "traefik.http.services.fastproxy.loadbalancer.server.port=3000"
+
+volumes:
+  backend_logs:
+
+networks:
+  fastproxy-network:
+    driver: bridge
+  traefik-public:
+    external: true 

@@ -1,0 +1,37 @@
+{
+  "cSpell.language": "en,pt,pt-BR",
+  "cSpell.words": [
+    "Anual",
+    "Configuração",
+    "Stripe",
+    "arquivo",
+    "arquivos",
+    "configuração",
+    "desabilitado",
+    "desenvolvimento",
+    "estáticos",
+    "fastproxy",
+    "integração",
+    "produção",
+    "sucesso",
+    "webhook"
+  ],
+  "cSpell.enableFiletypes": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "html",
+    "css",
+    "md",
+    "json"
+  ],
+  "cSpell.ignorePaths": [
+    "node_modules",
+    ".git",
+    "package-lock.json",
+    "public/**"
+  ],
+  "backup": {},
+  "cSpell.enabled": false
+}

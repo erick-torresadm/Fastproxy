@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-br" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com; connect-src 'self' http://localhost:8080 https://api.stripe.com https://*.stripe.com; frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://*.stripe.com https://www.youtube.com https://youtube.com; img-src 'self' data: https://stripe.com https://*.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;">
+    <title>FastProxy - Em Manutenção</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .maintenance-section {
+            min-height: 80vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 50px 20px;
+        }
+        
+        .maintenance-content {
+            max-width: 700px;
+            background-color: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 50px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .maintenance-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: var(--gradient);
+        }
+        
+        .maintenance-icon {
+            font-size: 80px;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        
+        .maintenance-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .maintenance-message {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        
+        .maintenance-date {
+            background-color: var(--light-green-bg);
+            padding: 12px 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .maintenance-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 576px) {
+            .maintenance-content {
+                padding: 30px 20px;
+            }
+            
+            .maintenance-title {
+                font-size: 24px;
+            }
+            
+            .maintenance-message {
+                font-size: 16px;
+            }
+            
+            .maintenance-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+        
+        [data-theme="dark"] .maintenance-content {
+            background-color: var(--card-bg);
+        }
+        
+        [data-theme="dark"] .maintenance-title {
+            color: #f0f0f0;
+        }
+        
+        [data-theme="dark"] .maintenance-message {
+            color: #cccccc;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="index.html">
+                    <img src="images/LOGO FAST PROXY.png" alt="FastProxy Logo" class="logo-light">
+                    <img src="images/Logo Fast Proxy White.png" alt="FastProxy Logo" class="logo-dark">
+                </a>
+            </div>
+            <div class="header-utils">
+                <div class="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Maintenance Section -->
+    <section class="maintenance-section">
+        <div class="maintenance-content">
+            <div class="maintenance-icon">
+                <i class="fas fa-tools"></i>
+            </div>
+            <h1 class="maintenance-title">Área em Manutenção</h1>
+            <p class="maintenance-message">Estamos trabalhando para melhorar nosso painel de administração e sistema de login. Em breve, novidades e melhorias estarão disponíveis para você!</p>
+            <div class="maintenance-date">
+                <i class="fas fa-calendar-alt"></i> Previsão de retorno: 15 de Junho de 2025
+            </div>
+            <p>Para adquirir nossos produtos durante este período, você pode entrar em contato pelo WhatsApp ou explorar nossas ofertas na página inicial.</p>
+            <div class="maintenance-buttons">
+                <a href="index.html" class="btn btn-primary">
+                    <i class="fas fa-home"></i> Voltar para Home
+                </a>
+                <a href="https://wa.me/5511999999999?text=Olá,%20gostaria%20de%20saber%20mais%20sobre%20os%20proxies%20da%20FastProxy" class="btn btn-whatsapp">
+                    <i class="fab fa-whatsapp"></i> Falar no WhatsApp
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <h3>tecnologia & segurança em meios de conexão</h3>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 FastProxy</p>
+                <div class="social-media">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+                <a href="index.html" class="scroll-top">
+                    <span>voltar para o início</span> <i class="fas fa-arrow-up"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/maintenance.js"></script>
+</body>
+</html> 

@@ -1,0 +1,15 @@
+{
+  "name": "fastproxy",
+  "version": "1.0.0",
+  "description": "FastProxy - Proxies Privados",
+  "main": "start-app.js",
+  "scripts": {
+    "start": "node start-app.js",
+    "setup": "cd backend && npm install && cd ../frontend && npm install",
+    "backend": "cd backend && node server.js",
+    "frontend": "cd frontend && node server.js"
+  },
+  "author": "FastProxy Team",
+  "license": "Proprietary",
+  "dependencies": {}
+}

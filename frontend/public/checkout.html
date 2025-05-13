@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com; connect-src 'self' http://localhost:8080 http://localhost:8081 https://api.stripe.com https://*.stripe.com; frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://*.stripe.com https://www.youtube.com https://youtube.com; img-src 'self' data: https://stripe.com https://*.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;">
+    <title>Checkout - FastProxy</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="/"><img src="images/LOGO FAST PROXY.png" alt="FastProxy Logo"></a>
+            </div>
+            <nav class="desktop-nav">
+                <ul>
+                    <li><a href="/">início</a></li>
+                    <li><a href="/recursos.html">recursos</a></li>
+                    <li><a href="/precos.html">preços</a></li>
+                    <li><a href="/contato.html">contato</a></li>
+                </ul>
+            </nav>
+            <div class="header-buttons">
+                <a href="/contato.html" class="btn btn-primary">Fale conosco</a>
+            </div>
+            <div class="mobile-menu-btn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu">
+        <ul>
+            <li><a href="/">início</a></li>
+            <li><a href="/recursos.html">recursos</a></li>
+            <li><a href="/precos.html">preços</a></li>
+            <li><a href="/contato.html">contato</a></li>
+        </ul>
+        <div class="mobile-buttons">
+            <a href="/contato.html" class="btn btn-primary">Fale conosco</a>
+        </div>
+    </div>
+    
+    <!-- Checkout Section -->
+    <section class="checkout-section">
+        <div class="container">
+            <div class="section-header">
+                <h1>Finalizar compra</h1>
+                <p>Complete seus dados para finalizar a contratação do seu proxy</p>
+            </div>
+            
+            <div class="checkout-container">
+                <!-- Formulário de Checkout -->
+                <div class="checkout-form-container">
+                    <form id="checkout-form">
+                        <div class="form-title">Dados Pessoais</div>
+                        
+                        <div class="form-group">
+                            <label for="name">Nome completo</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">E-mail</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">Telefone/WhatsApp</label>
+                            <input type="tel" id="phone" name="phone" required>
+                        </div>
+                        
+                        <div class="form-group quantity-group">
+                            <label for="proxy-quantity">Quantidade de Proxies</label>
+                            <div class="quantity-controls">
+                                <button type="button" id="decrement-btn" class="quantity-btn"><i class="fas fa-minus"></i></button>
+                                <input type="number" id="proxy-quantity" min="1" max="100" value="1" readonly>
+                                <button type="button" id="increment-btn" class="quantity-btn"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <input type="hidden" id="proxy-quantity-hidden" name="quantity" value="1">
+                        </div>
+                        
+                        <!-- Campos ocultos para identificação do plano -->
+                        <input type="hidden" id="plan-type" name="plan_type" value="">
+                        <input type="hidden" id="billing-type" name="billing_type" value="monthly">
+                        
+                        <div class="error-container">
+                            <div id="error-message" class="error-message" style="display: none;"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" id="checkout-button" class="btn btn-primary btn-block">Finalizar Compra</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Resumo do Pedido -->
+                <div class="order-summary">
+                    <div class="summary-title">Resumo do Pedido</div>
+                    
+                    <div class="summary-item">
+                        <span class="item-label">Plano</span>
+                        <span class="item-value" id="plan-name">-</span>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <span class="item-label">Ciclo de Cobrança</span>
+                        <span class="item-value" id="billing-cycle">-</span>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <span class="item-label">Subtotal</span>
+                        <span class="item-value" id="subtotal-value">-</span>
+                    </div>
+                    
+                    <div class="summary-divider"></div>
+                    
+                    <div class="summary-item summary-total">
+                        <span class="item-label">Total</span>
+                        <span class="item-value" id="total-value">-</span>
+                    </div>
+                    
+                    <div class="summary-info">
+                        <i class="fas fa-info-circle"></i>
+                        <p>Ao finalizar a compra, você concorda com nossos <a href="#">Termos de Serviço</a> e <a href="#">Política de Privacidade</a>.</p>
+                    </div>
+                    
+                    <div class="payment-methods">
+                        <div class="payment-title">Formas de Pagamento</div>
+                        <div class="payment-icons">
+                            <i class="fab fa-cc-visa"></i>
+                            <i class="fab fa-cc-mastercard"></i>
+                            <i class="fab fa-cc-amex"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <h3>tecnologia & segurança em meios de conexão</h3>
+                <a href="/precos.html" class="btn btn-primary">pedir proxy</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 FastProxy</p>
+                <div class="social-media">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+                <a href="#" class="scroll-top">
+                    rolar para cima <i class="fas fa-arrow-up"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+    <script src="js/checkout.js"></script>
+</body>
+</html> 

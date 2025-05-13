@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code PIX</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: white;
+        }
+        
+        #qrcode {
+            border: 10px solid white;
+            background-color: white;
+        }
+
+        .instructions {
+            position: fixed;
+            bottom: 20px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+    <div id="qrcode"></div>
+    <div class="instructions">
+        <p>Faça um print desta tela e salve como "pix-qrcode-example.png" na pasta "images"</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Criar QR Code
+            const qr = qrcode(0, 'L');
+            qr.addData('00020126580014BR.GOV.BCB.PIX0136a629532e-7693-4846-b028-f142434352974204000053039865802BR5913FastProxy6008Sao Paulo62180514ExemploPixFast6304ABCD');
+            qr.make();
+            
+            // Exibir QR Code
+            document.getElementById('qrcode').innerHTML = qr.createImgTag(5);
+        });
+    </script>
+</body>
+</html> 

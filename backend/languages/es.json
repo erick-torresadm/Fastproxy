@@ -1,0 +1,69 @@
+{
+  "site": {
+    "title": "FastProxy - Proxies Privados Socks5 y HTTPs",
+    "description": "Proxies privados con alta velocidad y estabilidad para tus operaciones"
+  },
+  "header": {
+    "home": "inicio",
+    "plans": "planes",
+    "contact": "contacto",
+    "tutorial": "tutorial",
+    "access": "acceder",
+    "login": "iniciar sesión"
+  },
+  "hero": {
+    "title": "el proxy privado que siempre has querido.",
+    "subtitle": "conexiones estables y alto rendimiento para tus operaciones",
+    "cta": "solicitar proxy",
+    "notice": "recepción automática en whatsapp y correo electrónico"
+  },
+  "features": {
+    "dedicatedIP": "IP dedicada",
+    "support": "soporte 24/7",
+    "anonymity": "alta anonimidad",
+    "speed": "alta velocidad",
+    "connections": "múltiples conexiones"
+  },
+  "about": {
+    "title": "somos 100% digitales y sin burocracia",
+    "text": "IP dedicada a un usuario real, con hasta un 99% de tiempo de actividad y soporte receptivo en 1 minuto, disponible 24/7"
+  },
+  "benefits": {
+    "title": "el proxy que siempre has querido",
+    "subtitle": "conexiones estables y soporte humanizado para tu operación",
+    "speed": {
+      "title": "velocidad insuperable",
+      "text": "servidores distribuidos estratégicamente por Brasil, garantizando la máxima velocidad y rendimiento dondequiera que estés"
+    },
+    "operation": {
+      "title": "operación fluida",
+      "text": "disfruta de la eficiencia que nuestros proxies aportan a tu operación, ayudándote a alcanzar nuevos niveles de facturación"
+    },
+    "ips": {
+      "title": "IPs dedicadas de alta calidad",
+      "text": "control total de proxies de última generación, optimizados para maximizar el rendimiento de tu operación"
+    },
+    "connections": {
+      "title": "adiós a las conexiones lentas",
+      "text": "proxies IPV4 e IPV6 que superan la lentitud de otras conexiones, elevando el rendimiento de tu operación a otro nivel"
+    }
+  },
+  "pricing": {
+    "title": "planes con precios especiales",
+    "subtitle": "elige lo que mejor se adapte a tu perfil",
+    "monthly": "mensual",
+    "annual": "anual",
+    "discount": "meses gratis",
+    "button": "contratar ahora"
+  },
+  "faq": {
+    "title": "preguntas frecuentes",
+    "subtitle": "todo lo que necesitas saber antes de adquirir"
+  },
+  "contact": {
+    "title": "ponte en contacto",
+    "subtitle": "estamos listos para atenderte",
+    "button": "enviar mensaje",
+    "whatsapp": "chatear en whatsapp"
+  }
+} 

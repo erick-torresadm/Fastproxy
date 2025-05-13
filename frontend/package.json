@@ -1,0 +1,16 @@
+{
+  "name": "fastproxy-frontend",
+  "version": "1.0.0",
+  "description": "Frontend para o sistema de vendas FastProxy",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "FastProxy Team",
+  "license": "Proprietary",
+  "dependencies": {
+    "axios": "^1.6.7",
+    "body-parser": "^1.20.2",
+    "express": "^4.18.2"
+  }
+} 

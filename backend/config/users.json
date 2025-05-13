@@ -1,0 +1,13 @@
+{
+  "users": [
+    {
+      "id": "33593c1b-4f23-4e6a-8e91-ded8fb8dead5",
+      "username": "testadmin",
+      "email": "test@example.com",
+      "password": "$2b$10$lhOIka7zwNhRh2iU2UglRuA1jsFVIZRAEObFtGamAshQBz8b2OPji",
+      "role": "admin",
+      "created": "2025-05-10T19:14:48.532Z",
+      "lastLogin": "2025-05-10T19:14:58.971Z"
+    }
+  ]
+}
