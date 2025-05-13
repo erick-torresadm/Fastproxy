@@ -10,10 +10,59 @@ const rateLimit = require('express-rate-limit');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const axios = require('axios');
+const sanitizeHtml = require('sanitize-html');
+const dotenv = require('dotenv');
 
 // Configurar os logs antes de tudo
 const logger = require('./utils/logger');
 const httpLogger = require('./middleware/http-logger');
+
+// Configurar variáveis de ambiente
+dotenv.config();
+
+// Função para sanitizar entrada e prevenir injeção
+function sanitizeInput(input) {
+  if (typeof input === 'string') {
+    // Sanitizar strings para prevenir XSS e outros ataques
+    return sanitizeHtml(input, {
+      allowedTags: [], // Não permitir nenhuma tag HTML
+      allowedAttributes: {},
+      disallowedTagsMode: 'recursiveEscape' 
+    });
+  } else if (input !== null && typeof input === 'object') {
+    // Sanitizar objetos recursivamente
+    if (Array.isArray(input)) {
+      return input.map(item => sanitizeInput(item));
+    } else {
+      const sanitized = {};
+      for (const key in input) {
+        if (Object.prototype.hasOwnProperty.call(input, key)) {
+          sanitized[key] = sanitizeInput(input[key]);
+        }
+      }
+      return sanitized;
+    }
+  }
+  // Retornar valores primitivos sem alteração
+  return input;
+}
+
+// Middleware para sanitizar automaticamente o corpo da requisição
+const sanitizeMiddleware = (req, res, next) => {
+  if (req.body) {
+    req.body = sanitizeInput(req.body);
+  }
+  
+  if (req.query) {
+    req.query = sanitizeInput(req.query);
+  }
+  
+  if (req.params) {
+    req.params = sanitizeInput(req.params);
+  }
+  
+  next();
+};
 
 // Função para enviar dados de pagamento para o webhook externo
 async function sendToExternalWebhook(eventType, data) {
@@ -21,12 +70,6 @@ async function sendToExternalWebhook(eventType, data) {
     // Verificar se temos uma URL de webhook configurada
     if (!config || !config.webhooks || !config.webhooks.externalUrl) {
       logger.warn('Tentativa de enviar para webhook externo sem URL configurada');
-      return false;
-    }
-
-    // Validar a URL do webhook para garantir que é HTTPS (em produção)
-    if (config.isProduction && !config.webhooks.externalUrl.startsWith('https://')) {
-      logger.error('Webhook externo deve usar HTTPS em ambiente de produção');
       return false;
     }
 
@@ -47,13 +90,6 @@ async function sendToExternalWebhook(eventType, data) {
     // Gerar uma assinatura HMAC para o payload
     const signature = generateHmacSignature(filteredData, config.webhooks.secret || 'default-secret');
 
-    // Validar tamanho dos dados - limitar para prevenir ataques de DoS
-    const dataSize = JSON.stringify(filteredData).length;
-    if (dataSize > 1024 * 1024) { // Limitar a 1MB
-      logger.error(`Payload de webhook muito grande (${Math.round(dataSize/1024)}KB). Máximo permitido: 1MB`);
-      return false;
-    }
-
     // Enviar dados para o webhook externo com a assinatura no cabeçalho
     logger.info(`Enviando dados para webhook externo: ${config.webhooks.externalUrl}`);
     const response = await axios.post(config.webhooks.externalUrl, filteredData, {
@@ -61,10 +97,7 @@ async function sendToExternalWebhook(eventType, data) {
         'X-Webhook-Signature': signature,
         'X-Webhook-Timestamp': timestamp,
         'Content-Type': 'application/json'
-      },
-      timeout: 5000, // Timeout de 5 segundos para evitar bloqueios
-      maxContentLength: 1024 * 1024, // Limitar tamanho da resposta a 1MB
-      validateStatus: (status) => status >= 200 && status < 500 // Considerar qualquer status 2xx-4xx como resposta válida
+      }
     });
     
     if (response.status >= 200 && response.status < 300) {
@@ -75,12 +108,8 @@ async function sendToExternalWebhook(eventType, data) {
       return false;
     }
   } catch (error) {
-    if (error.code === 'ECONNABORTED') {
-      logger.error(`Timeout ao enviar dados para webhook externo após 5 segundos`);
-    } else {
-      logger.error(`Erro ao enviar dados para webhook externo: ${error.message}`);
-      logger.error(error.stack);
-    }
+    logger.error(`Erro ao enviar dados para webhook externo: ${error.message}`);
+    logger.error(error.stack);
     return false;
   }
 }
@@ -123,18 +152,18 @@ function generateHmacSignature(data, secret) {
 }
 
 // Verificar se o arquivo de template existe
-if (!fs.existsSync('.env') && !fs.existsSync('env.template')) {
+if (!fs.existsSync(path.join(__dirname, '.env')) && !fs.existsSync(path.join(__dirname, 'env.template'))) {
   logger.error('Arquivo .env não encontrado e o template não está disponível.');
   process.exit(1);
 }
 
 // Se .env não existir mas temos o template, criar a partir do template
-if (!fs.existsSync('.env') && fs.existsSync('env.template')) {
+if (!fs.existsSync(path.join(__dirname, '.env')) && fs.existsSync(path.join(__dirname, 'env.template'))) {
   logger.info('Arquivo .env não encontrado. Criando a partir do template...');
   
   try {
     // Copiar o template para .env
-    fs.copyFileSync('env.template', '.env');
+    fs.copyFileSync(path.join(__dirname, 'env.template'), path.join(__dirname, '.env'));
     logger.info('Arquivo .env criado com sucesso!');
     logger.warn('IMPORTANTE: Edite o arquivo .env e substitua as chaves de exemplo por suas chaves reais!');
   } catch (err) {
@@ -149,6 +178,115 @@ const config = require('./config');
 // Inicialização do Stripe com a chave secreta
 const stripe = require('stripe')(config.stripe.secretKey);
 
+// Inicializar variáveis MCP para usar com Stripe
+const mcpStripe = {
+  stripe_create_customer: async (name, email = null) => {
+    try {
+      const customerData = { name };
+      if (email) customerData.email = email;
+      
+      logger.info(`Criando cliente via MCP: ${name}, ${email}`);
+      return await stripe.customers.create(customerData);
+    } catch (error) {
+      logger.error(`Erro ao criar cliente via MCP: ${error.message}`);
+      throw error;
+    }
+  },
+  
+  stripe_list_customers: async (email = null, limit = 10) => {
+    try {
+      const params = { limit };
+      if (email) params.email = email;
+      
+      logger.info(`Listando clientes via MCP: ${email ? 'email=' + email : ''}, limit=${limit}`);
+      return await stripe.customers.list(params);
+    } catch (error) {
+      logger.error(`Erro ao listar clientes via MCP: ${error.message}`);
+      throw error;
+    }
+  },
+  
+  stripe_create_product: async (name, description = null) => {
+    try {
+      const productData = { name };
+      if (description) productData.description = description;
+      
+      logger.info(`Criando produto via MCP: ${name}`);
+      return await stripe.products.create(productData);
+    } catch (error) {
+      logger.error(`Erro ao criar produto via MCP: ${error.message}`);
+      throw error;
+    }
+  },
+  
+  stripe_list_products: async (limit = 10) => {
+    try {
+      logger.info(`Listando produtos via MCP: limit=${limit}`);
+      return await stripe.products.list({ limit });
+    } catch (error) {
+      logger.error(`Erro ao listar produtos via MCP: ${error.message}`);
+      throw error;
+    }
+  },
+  
+  stripe_create_price: async (product, unit_amount, currency = 'brl') => {
+    try {
+      logger.info(`Criando preço via MCP: produto=${product}, valor=${unit_amount/100} ${currency}`);
+      return await stripe.prices.create({
+        product,
+        unit_amount,
+        currency
+      });
+    } catch (error) {
+      logger.error(`Erro ao criar preço via MCP: ${error.message}`);
+      throw error;
+    }
+  },
+  
+  stripe_list_prices: async (product = null, limit = 10) => {
+    try {
+      const params = { limit };
+      if (product) params.product = product;
+      
+      logger.info(`Listando preços via MCP: ${product ? 'produto=' + product : ''}, limit=${limit}`);
+      return await stripe.prices.list(params);
+    } catch (error) {
+      logger.error(`Erro ao listar preços via MCP: ${error.message}`);
+      throw error;
+    }
+  },
+  
+  stripe_create_payment_link: async (price, quantity = 1) => {
+    try {
+      logger.info(`Criando link de pagamento via MCP: preço=${price}, quantidade=${quantity}`);
+      return await stripe.paymentLinks.create({
+        line_items: [
+          {
+            price,
+            quantity
+          }
+        ]
+      });
+    } catch (error) {
+      logger.error(`Erro ao criar link de pagamento via MCP: ${error.message}`);
+      throw error;
+    }
+  }
+};
+
+// Se estiver em modo de desenvolvimento, usar o mock do MCP Stripe
+if (config.isDevelopment && process.env.USE_STRIPE_MOCK === 'true') {
+  logger.info('Usando mock do MCP Stripe para desenvolvimento');
+  const mcpStripeMock = require('./utils/mcp-stripe-mock');
+  mcpStripe.stripe_create_customer = mcpStripeMock.createCustomer;
+  mcpStripe.stripe_list_customers = mcpStripeMock.listCustomers;
+  mcpStripe.stripe_create_product = mcpStripeMock.createProduct;
+  mcpStripe.stripe_list_products = mcpStripeMock.listProducts;
+  mcpStripe.stripe_create_price = mcpStripeMock.createPrice;
+  mcpStripe.stripe_list_prices = mcpStripeMock.listPrices;
+  mcpStripe.stripe_create_payment_link = mcpStripeMock.createPaymentLink;
+}
+
 // Carregar validadores
 const { validateCheckoutSession, validateLogin, validateAdmin } = require('./middleware/validators');
 
@@ -156,8 +294,8 @@ const { validateCheckoutSession, validateLogin, validateAdmin } = require('./mid
 const { requireAuth, handleUnauthorized } = require('./middleware/auth');
 const authService = require('./utils/auth-service');
 
-// Criar app Express
 const app = express();
+const PORT = process.env.PORT || 8080;
 
 // Adicionar middlewares de segurança
 // 1. Configurações avançadas de Helmet para segurança HTTP
@@ -167,14 +305,11 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "https://js.stripe.com", "https://cdnjs.cloudflare.com", "'unsafe-inline'"],
       frameSrc: ["'self'", "https://js.stripe.com", "https://checkout.stripe.com", "https://*.stripe.com"],
-      connectSrc: ["'self'", "https://api.stripe.com", "https://*.stripe.com", "http://localhost:8080", "http://localhost:3000"],
-      imgSrc: ["'self'", "data:", "https://stripe.com", "https://*.stripe.com", "https://www.gstatic.com"],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://*.stripe.com", "http://localhost:8080"],
+      imgSrc: ["'self'", "data:", "https://stripe.com", "https://*.stripe.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"],
-      formAction: ["'self'", "https://*.stripe.com"],
-      mediaSrc: ["'self'"]
+      objectSrc: ["'none'"]
     }
   },
   // Proteção contra clickjacking
@@ -197,9 +332,34 @@ app.use(helmet({
 
 // 2. CORS configurado adequadamente
 app.use(cors({
-  origin: 'http://localhost:3000', // Permitir apenas o frontend na porta 3000
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature']
+  origin: function(origin, callback) {
+    // Em ambiente de desenvolvimento, aceitar qualquer origem
+    if (config.isDevelopment) {
+      return callback(null, true);
+    }
+    
+    // Lista de origens permitidas para produção
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'https://fastproxy.com.br',
+      'https://www.fastproxy.com.br',
+      'https://homolog.fastproxy.com.br',
+      'https://staging.fastproxy.com.br'
+    ];
+    
+    // Verificar se a origem está na lista de permitidas
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      logger.warn(`Acesso CORS bloqueado para origem: ${origin}`);
+      callback(new Error('Origem não permitida pelo CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature', 'X-Requested-With'],
+  credentials: true,
+  maxAge: 86400 // 24 horas em segundos (cache do preflight)
 }));
 
 // 3. Rate limiting para prevenir brute force e DDoS
@@ -211,30 +371,58 @@ const apiLimiter = rateLimit({
   legacyHeaders: false, // Desabilitar cabeçalhos legados
   handler: (req, res, next, options) => {
     logger.warn(`Rate limit excedido para IP: ${req.ip}`);
+    // Registrar tentativas de exceder limite
+    logger.error(`Limite máximo de requisições alcançado para ${req.ip}`);
     res.status(429).json(options.message);
-  }
+  },
+  // Implementar estratégia de limite adaptável
+  keyGenerator: (req) => {
+    // Usar combinação de IP e user agent para ser mais difícil de burlar
+    return `${req.ip}-${req.headers['user-agent'] || 'unknown'}`;
+  },
+  skip: (req, res) => {
+    // Pular limitação em ambiente de desenvolvimento ou para IPs de confiança
+    if (config.isDevelopment) {
+      return true;
+    }
+    
+    // Lista de IPs confiáveis (deve ser configurada no ambiente)
+    const trustedIps = config.trustedIps || [];
+    return trustedIps.includes(req.ip);
+  },
+  // Adicionar atraso para respostas sob alta carga
+  // (desencorajar tentativas em larga escala)
+  requestWasSuccessful: (req, res) => true
 });
 
-// Rate limit mais restrito para rotas de autenticação
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // limitar a 5 tentativas de login por janela
-  message: { error: 'Muitas tentativas de login. Tente novamente mais tarde.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res, next, options) => {
-    logger.warn(`Rate limit de autenticação excedido para IP: ${req.ip}`);
-    res.status(429).json(options.message);
-  }
-});
-
-// Aplicar rate limiting para as rotas da API
+// Aplicar rate limiting apenas para as rotas da API
 app.use('/stripe-key', apiLimiter);
 app.use('/create-checkout-session', apiLimiter);
 app.use('/api/stripe/webhooks/incoming', apiLimiter);
-app.use('/login', authLimiter);
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/admin', authLimiter);
+
+// Rate limiting mais restritivo para rotas críticas
+const strictLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutos
+  max: 5, // 5 requisições por janela
+  message: { error: 'Muitas tentativas. Tente novamente mais tarde.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    logger.warn(`Limite estrito excedido para IP: ${req.ip} na rota ${req.originalUrl}`);
+    // Adicionar atraso maior para dificultar ataques de timing
+    setTimeout(() => {
+      res.status(429).json(options.message);
+    }, Math.floor(Math.random() * 1000) + 500);
+  },
+  skip: (req, res) => {
+    // Pular limitação em ambiente de desenvolvimento
+    return config.isDevelopment;
+  }
+});
+
+// Aplicar rate limiting estrito para rotas críticas
+app.use('/admin/*', strictLimiter);
+app.use('/api/admin/*', strictLimiter);
 
 // Logging de requisições HTTP
 app.use(httpLogger);
@@ -245,691 +433,131 @@ app.use(bodyParser.json());
 // Parser para formulários
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Aplicar sanitização após parsing do body
+app.use(sanitizeMiddleware);
+
 // Middleware para lidar com erros de autenticação JWT
 app.use(handleUnauthorized);
 
 // Servir arquivos estáticos da pasta 'public'
 app.use(express.static(path.join(__dirname, '../frontend/public')));
 
-// Rota para obter a chave pública do Stripe
-app.get('/stripe-key', (req, res) => {
-  logger.info(`Chave pública do Stripe requisitada por ${req.ip}`);
-  
-  // Enviar a chave pública do Stripe (é seguro compartilhar a chave pública)
-  res.json({
-    success: true,
-    publishableKey: config.stripe.publishableKey
-  });
-});
+// Verificar a chave do Stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.warn('AVISO: STRIPE_SECRET_KEY não está definida no arquivo .env');
+  console.warn('As funcionalidades de pagamento podem não funcionar corretamente');
+}
 
-// Nova rota para obter configurações de preços e planos
-app.get('/pricing-config', (req, res) => {
-  logger.info(`Configurações de preço requisitadas por ${req.ip}`);
-  
-  // Enviar apenas as informações necessárias, sem credenciais
-  res.json({
-    success: true,
-    pricing: {
-      monthly: 14.90,
-      yearlyDiscount: 2, // meses grátis no plano anual
-      volumeDiscounts: {
-        tier1: { min: 5, discount: 0.05 }, // 5% para 5 ou mais
-        tier2: { min: 10, discount: 0.10 } // 10% para 10 ou mais
-      }
-    }
-  });
-});
-
-// Rota para criar uma sessão de checkout (com validação)
-app.post('/create-checkout-session', validateCheckoutSession, async (req, res) => {
+// Rota para criar uma assinatura
+app.post('/api/create-subscription', async (req, res) => {
   try {
-    const { quantity, planType, paymentMethod } = req.body;
+    const { quantity, planType } = req.body;
     
-    // Validar entrada
-    if (!quantity || quantity < 1) {
-      logger.warn(`Tentativa de checkout com quantidade inválida: ${quantity}`);
-      return res.status(400).json({ error: 'A quantidade deve ser maior que zero' });
+    // Validar os dados recebidos
+    if (!quantity || !planType) {
+      return res.status(400).json({ error: 'Quantidade e tipo de plano são obrigatórios' });
+    }
+
+    // Verificar quantidade (entre 1 e 100)
+    const numQuantity = parseInt(quantity);
+    if (isNaN(numQuantity) || numQuantity < 1 || numQuantity > 100) {
+      return res.status(400).json({ error: 'Quantidade inválida. Deve ser entre 1 e 100' });
     }
     
-    // Carregar o Stripe apenas no momento do checkout, não no front-end
-    logger.info('Iniciando criação de sessão de checkout do Stripe');
-    
-    // Calcular preço base
-    const baseUnitPrice = 14.90; // preço unitário mensal base
-    let unitAmount; // em centavos
-    let productName;
-    let interval = 'month'; // Padrão para mensal
-    
+    // Determinar qual ID do produto/preço do Stripe usar com base no tipo de plano
+    let stripePriceId;
     if (planType === 'monthly') {
-      // Plano mensal
-      let unitPrice = baseUnitPrice;
-      
-      // Aplicar descontos por volume
-      if (quantity >= 10) {
-        unitPrice *= 0.9; // 10% de desconto
-      } else if (quantity >= 5) {
-        unitPrice *= 0.95; // 5% de desconto
-      }
-      
-      unitAmount = Math.round(unitPrice * 100); // Converter para centavos
-      productName = 'Proxy IPv6 - Plano Mensal';
+      stripePriceId = process.env.STRIPE_MONTHLY_PRICE_ID;
+    } else if (planType === 'yearly') {
+      stripePriceId = process.env.STRIPE_YEARLY_PRICE_ID;
     } else {
-      // Plano anual (com desconto)
-      const yearlyDiscount = 2; // dois meses grátis
-      const monthsToCharge = 12 - yearlyDiscount;
-      
-      // Calcular preço anual
-      unitAmount = Math.round(baseUnitPrice * monthsToCharge * 100); // Converter para centavos
-      productName = 'Proxy IPv6 - Plano Anual';
-      interval = 'year'; // Configurar como assinatura anual
+      return res.status(400).json({ error: 'Tipo de plano inválido' });
     }
     
-    logger.info(`Nova sessão de checkout solicitada: ${quantity} itens, plano ${planType}, intervalo: ${interval}`);
-    
-    try {
-      // Criar um produto para a assinatura
-      const product = await stripe.products.create({
-        name: `${quantity} ${quantity > 1 ? 'Proxies IPv6' : 'Proxy IPv6'} - Plano ${interval === 'month' ? 'Mensal' : 'Anual'}`,
-        description: `${quantity} proxy(s) IPv6 de alta performance - Valor unitário: R$ ${interval === 'month' ? '14,90' : ((baseUnitPrice * (12 - yearlyDiscount)) / 12).toFixed(2).replace('.', ',')} por mês - Plano ${interval === 'month' ? 'Mensal' : 'Anual'}`,
-        metadata: {
-          quantity: quantity.toString(),
-          price_per_unit: interval === 'month' ? '14,90' : ((baseUnitPrice * (12 - yearlyDiscount)) / 12).toFixed(2).replace('.', ','),
-          plan_type: interval === 'month' ? 'Mensal' : 'Anual'
-        }
-      });
-      
-      // Criar um preço para o produto (definindo a recorrência)
-      const price = await stripe.prices.create({
-        product: product.id,
-        unit_amount: unitAmount,
-        currency: 'brl',
-        recurring: { interval: interval },
-      });
-      
-      // Criar a sessão de checkout com o preço criado
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price: price.id,
-            quantity: quantity,
-          },
-        ],
-        mode: 'subscription',
-        billing_address_collection: 'auto',
-        phone_number_collection: {
-          enabled: true,
-        },
-        client_reference_id: `${quantity}_proxies_${interval}`,
-        custom_text: {
-          submit: {
-            message: `Você está comprando ${quantity} proxy(s) IPv6 de alta performance. Valor unitário: R$ ${interval === 'month' ? '14,90' : ((baseUnitPrice * (12 - yearlyDiscount)) / 12).toFixed(2).replace('.', ',')} por mês.`,
-          },
-        },
-        metadata: {
-          quantity: quantity.toString(),
-          plan_type: interval,
-          unit_price: (unitAmount / 100).toString(),
-          total_price: ((unitAmount * quantity) / 100).toString(),
-          product_name: `${quantity} proxy(s) IPv6 de alta performance - Plano ${interval === 'month' ? 'Mensal' : 'Anual'}`,
-          price_per_proxy: interval === 'month' ? '14,90' : ((baseUnitPrice * (12 - yearlyDiscount)) / 12).toFixed(2).replace('.', ',')
-        },
-        success_url: `${req.headers.origin}/sucesso?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.headers.origin}?canceled=true`,
-      });
-      
-      logger.info(`Sessão de checkout criada com sucesso: ${session.id}`);
-      
-      // Retorna apenas a URL de checkout, eliminando a necessidade do Stripe.js no frontend
-      res.json({ url: session.url });
-    } catch (error) {
-      logger.error(`Erro ao criar produtos/preços no Stripe: ${error.message}`);
-      logger.error(`Stack trace: ${error.stack}`);
-      
-      return res.status(500).json({
-        error: 'Não foi possível criar a sessão de checkout',
-        details: config.isDevelopment ? error.message : 'Erro interno'
+    // Verificar se temos o ID do preço configurado
+    if (!stripePriceId) {
+      return res.status(500).json({ 
+        error: `ID do preço Stripe para o plano ${planType} não configurado no arquivo .env` 
       });
     }
+
+    // Criar sessão de checkout para assinatura
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: stripePriceId,
+          quantity: numQuantity,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${req.protocol}://${req.get('host')}/sucesso.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.protocol}://${req.get('host')}/#planos`,
+      metadata: {
+        quantity: numQuantity.toString(),
+        planType: planType
+      }
+    });
+
+    res.json({ url: session.url });
+    
   } catch (error) {
-    logger.error(`Erro ao criar sessão de checkout: ${error.message}`);
-    logger.error(`Stack trace: ${error.stack}`);
-    
-    return res.status(500).json({
-      error: 'Não foi possível criar a sessão de checkout',
-      details: config.isDevelopment ? error.message : 'Erro interno'
+    console.error('Erro ao criar sessão de checkout:', error);
+    res.status(500).json({ 
+      error: 'Erro ao processar sua solicitação. Por favor, tente novamente.' 
     });
   }
 });
 
-// Webhook para capturar eventos do Stripe (com caminho obscuro para evitar tentativas de acesso direto)
-app.post('/api/stripe/webhooks/incoming', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
+// Webhook do Stripe para processar eventos de assinatura
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  
-  // 1. Verificar se a requisição veio realmente do Stripe checando a assinatura
-  if (!sig) {
-    logger.error('Tentativa de acesso ao webhook sem assinatura do Stripe');
-    // Não revelamos motivo específico ao cliente para evitar ataques
-    return res.status(403).send('Acesso não autorizado');
-  }
-  
-  // 2. Verificar IP de origem para adicionar uma camada extra de segurança
-  // Lista de IPs permitidos do Stripe (atualizar esta lista periodicamente)
-  // https://stripe.com/docs/webhooks/signatures#verify-ip-addresses
-  const STRIPE_WEBHOOK_IPS = [
-    '3.18.12.63',
-    '3.130.192.231',
-    '13.235.14.237',
-    '13.235.122.149',
-    '18.211.135.69',
-    '35.154.171.200',
-    '52.15.183.38',
-    '54.88.130.119',
-    '54.88.130.237',
-    '54.187.174.169',
-    '54.187.205.235',
-    '54.187.216.72',
-    '54.241.31.99',
-    '54.241.31.102',
-    '54.241.34.107'
-    // Esta lista deve ser atualizada regularmente a partir da documentação do Stripe
-  ];
-  
-  const clientIP = req.ip || req.connection.remoteAddress;
-  logger.info(`Requisição webhook recebida de IP: ${clientIP}`);
-  
-  // Verificar IP em ambiente de produção
-  if (config.isProduction) {
-    const isAllowedIP = STRIPE_WEBHOOK_IPS.some(ip => clientIP.includes(ip));
-    if (!isAllowedIP) {
-      logger.warn(`Possível tentativa não autorizada: IP não permitido: ${clientIP}`);
-      // Responder com atraso aleatório para dificultar ataques de timing
-      await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 500) + 200));
-      return res.status(403).send('Acesso não autorizado');
-    }
-  }
-  
-  // 3. Verificar origem da requisição
-  const origin = req.get('origin');
-  if (origin && !origin.includes('stripe.com')) {
-    logger.warn(`Possível tentativa de spoofing: ${origin}`);
-  }
-  
   let event;
 
   try {
-    // Verificar se temos um segredo de webhook configurado
-    if (!config.stripe.webhookSecret) {
-      logger.error('Webhook do Stripe chamado sem um segredo configurado');
-      return res.status(500).send('Configuração incorreta');
-    }
-
-    try {
-      // Verificar a assinatura do webhook (isso garante que a requisição veio do Stripe)
-      event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        config.stripe.webhookSecret
-      );
-    } catch (err) {
-      logger.error(`Erro na assinatura do webhook: ${err.message}`);
-      // Não revelamos o erro específico para evitar ataques
-      return res.status(403).send('Assinatura inválida');
+    // Verificar a assinatura do webhook
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!endpointSecret) {
+      return res.status(400).send('Webhook secret não configurado');
     }
     
-    logger.info(`Evento de webhook autenticado recebido: ${event.type}`);
-    
-    // Verificar se este evento já foi processado (prevenção de replay)
-    const eventId = event.id;
-    const isProcessed = await checkIfEventWasProcessed(eventId);
-    if (isProcessed) {
-      logger.warn(`Evento já processado (possível replay attack): ${eventId}`);
-      return res.status(200).send('Evento já processado');
-    }
-    
-    // Verificar a idade do evento para prevenir replay attacks
-    const eventCreatedAt = new Date(event.created * 1000);
-    const now = new Date();
-    const eventAgeInSeconds = (now - eventCreatedAt) / 1000;
-    const MAX_EVENT_AGE = 300; // 5 minutos
-    
-    if (eventAgeInSeconds > MAX_EVENT_AGE) {
-      logger.warn(`Evento expirado (possível replay attack): ${eventId}, idade: ${eventAgeInSeconds} segundos`);
-      return res.status(400).send('Evento expirado');
-    }
-    
-    // Marcar evento como processado antes de iniciar o processamento
-    await markEventAsProcessed(eventId);
-    
-    // Adicionar um pequeno atraso aleatório para dificultar ataques de timing
-    const randomDelay = Math.floor(Math.random() * 200) + 100;
-    await new Promise(resolve => setTimeout(resolve, randomDelay));
-    
-    // Processar eventos específicos
-    switch (event.type) {
-      case 'checkout.session.completed':
-        const session = event.data.object;
-        
-        // Verificar se o pagamento foi realmente bem-sucedido
-        if (session.payment_status === 'paid') {
-          // Log da referência do cliente e quantidade
-          logger.info(`ID de referência: ${session.client_reference_id || 'N/A'}`);
-          
-          // Formatar os dados de maneira amigável para o webhook
-          const valorTotalFormatado = (session.amount_total / 100).toFixed(2).replace('.', ',');
-          
-          // Extrair quantidade de metadados
-          const quantidadeProxies = session.metadata?.quantity || 'N/D';
-          const planoTipo = session.metadata?.plan_type === 'month' ? 'Mensal' : 'Anual';
-          const nomeProduto = session.metadata?.product_name || `${quantidadeProxies} proxy(s) IPv6 - Plano ${planoTipo}`;
-          const precoUnitario = session.metadata?.price_per_proxy || '14,90';
-          
-          // Buscar dados da assinatura se existir
-          let subscriptionDetails = null;
-          
-          try {
-            if (session.subscription) {
-              // Obter detalhes completos da assinatura
-              const subscription = await stripe.subscriptions.retrieve(session.subscription, {
-                expand: ['items.data.price.product']
-              });
-              
-              subscriptionDetails = subscription;
-              
-              logger.info(`Assinatura associada à sessão encontrada: ${subscription.id}`);
-              logger.info(`Quantidade de itens: ${subscription.items.data[0]?.quantity || 1}`);
-            }
-          } catch (err) {
-            logger.error(`Erro ao buscar assinatura do checkout: ${err.message}`);
-          }
-          
-          // Criar objeto de dados formatados para enviar ao webhook
-          const checkoutData = {
-            id_sessao: session.id,
-            valor: `R$ ${valorTotalFormatado}`,
-            valor_numerico: session.amount_total / 100,
-            quantidade_proxies: parseInt(quantidadeProxies) || 1,
-            preco_por_proxy: precoUnitario,
-            plano: planoTipo,
-            produto: nomeProduto,
-            cliente: {
-              id: session.customer,
-              email: session.customer_details?.email || 'N/D',
-              telefone: session.customer_details?.phone || 'N/D'
-            },
-            status: session.payment_status,
-            moeda: session.currency.toUpperCase(),
-            data_pagamento: new Date(session.created * 1000).toISOString(),
-            // Incluir dados da assinatura se disponível
-            subscription: subscriptionDetails ? {
-              id: subscriptionDetails.id,
-              status: subscriptionDetails.status,
-              current_period_start: new Date(subscriptionDetails.current_period_start * 1000).toISOString(),
-              current_period_end: new Date(subscriptionDetails.current_period_end * 1000).toISOString(),
-              items: subscriptionDetails.items.data.map(item => ({
-                id: item.id,
-                quantity: item.quantity,
-                price: {
-                  id: item.price.id,
-                  unit_amount: item.price.unit_amount / 100,
-                  currency: item.price.currency,
-                  recurring: item.price.recurring ? {
-                    interval: item.price.recurring.interval
-                  } : null
-                },
-                product: item.price.product ? {
-                  id: item.price.product.id,
-                  name: item.price.product.name,
-                  description: item.price.product.description,
-                  metadata: item.price.product.metadata
-                } : null
-              }))
-            } : null
-          };
-          
-          // Enviar os dados para o webhook externo
-          await sendToExternalWebhook('checkout_completed', checkoutData);
-          
-          logger.info(`Pagamento bem-sucedido para a sessão: ${session.id}`);
-          logger.info(`Detalhes da compra: ${JSON.stringify(checkoutData)}`);
-          
-          // Aqui você pode processar o pedido, enviar e-mails, atualizar banco de dados, etc.
-          // Exemplo:
-          // await processOrder(session);
-        } else {
-          logger.warn(`Sessão de checkout completada, mas pagamento não confirmado: ${session.id}, status: ${session.payment_status}`);
-        }
-        break;
-      
-      case 'customer.subscription.created':
-        const newSubscription = event.data.object;
-        
-        try {
-          // Obter detalhes completos da assinatura
-          const subscriptionDetails = await stripe.subscriptions.retrieve(newSubscription.id, {
-            expand: ['items.data.price.product', 'customer']
-          });
-          
-          // Extrair quantidade de itens
-          const quantidade = subscriptionDetails.items.data[0]?.quantity || 1;
-          const planoTipo = subscriptionDetails.items.data[0]?.plan.interval === 'month' ? 'Mensal' : 'Anual';
-          
-          // Formatar valores
-          const valorTotalFormatado = ((subscriptionDetails.items.data[0]?.price.unit_amount || 0) * quantidade / 100).toFixed(2).replace('.', ',');
-          
-          logger.info(`Nova assinatura criada: ${newSubscription.id}`);
-          logger.info(`Detalhes da assinatura: Cliente: ${newSubscription.customer}, Quantidade: ${quantidade}, Plano: ${planoTipo}`);
-          
-          // Criar objeto com dados formatados
-          const subscriptionData = {
-            id_assinatura: subscriptionDetails.id,
-            cliente: {
-              id: subscriptionDetails.customer.id,
-              email: subscriptionDetails.customer.email || 'N/A',
-              nome: subscriptionDetails.customer.name || 'N/A'
-            },
-            status: subscriptionDetails.status,
-            valor: `R$ ${valorTotalFormatado}`,
-            valor_numerico: (subscriptionDetails.items.data[0]?.price.unit_amount || 0) * quantidade / 100,
-            quantidade_proxies: quantidade,
-            plano: planoTipo,
-            periodo: {
-              inicio: new Date(subscriptionDetails.current_period_start * 1000).toISOString(),
-              fim: new Date(subscriptionDetails.current_period_end * 1000).toISOString()
-            },
-            proxima_cobranca: subscriptionDetails.current_period_end 
-              ? new Date(subscriptionDetails.current_period_end * 1000).toISOString() 
-              : null,
-            itens: subscriptionDetails.items.data.map(item => ({
-              id: item.id,
-              quantity: item.quantity,
-              price: {
-                id: item.price.id,
-                unit_amount: item.price.unit_amount / 100,
-                currency: item.price.currency,
-                recurring: item.price.recurring ? {
-                  interval: item.price.recurring.interval
-                } : null
-              },
-              product: item.price.product ? {
-                id: item.price.product.id,
-                name: item.price.product.name,
-                description: item.price.product.description,
-                metadata: item.price.product.metadata
-              } : null
-            }))
-          };
-          
-          // Enviar dados para o webhook externo
-          await sendToExternalWebhook('subscription_created', subscriptionData);
-          
-          logger.info(`Detalhes da nova assinatura enviados para webhook externo`);
-          
-          // Aqui você pode ativar o serviço para o cliente, atualizando sua base de dados
-        } catch (err) {
-          logger.error(`Erro ao processar nova assinatura: ${err.message}`);
-          logger.error(err.stack);
-          
-          // Enviar dados básicos em caso de erro
-          const basicSubscriptionData = {
-            id_assinatura: newSubscription.id,
-            cliente: newSubscription.customer,
-            status: newSubscription.status
-          };
-          
-          await sendToExternalWebhook('subscription_created_basic', basicSubscriptionData);
-        }
-        break;
-        
-      case 'customer.subscription.updated':
-        const updatedSubscription = event.data.object;
-        logger.info(`Assinatura atualizada: ${updatedSubscription.id}, Status: ${updatedSubscription.status}`);
-        // Aqui você pode atualizar os detalhes da assinatura na sua base de dados
-        break;
-        
-      case 'customer.subscription.deleted':
-        const canceledSubscription = event.data.object;
-        logger.info(`Assinatura cancelada: ${canceledSubscription.id}`);
-        // Aqui você pode desativar o serviço para este cliente
-        break;
-        
-      case 'invoice.payment_succeeded':
-        const paidInvoice = event.data.object;
-        
-        try {
-          // Buscar detalhes da assinatura se existir
-          let subscriptionDetails = { quantity: '1', plan: 'Mensal' };
-          let fullSubscription = null;
-          
-          if (paidInvoice.subscription) {
-            try {
-              // Obter detalhes completos da assinatura
-              const subscription = await stripe.subscriptions.retrieve(paidInvoice.subscription, {
-                expand: ['items.data.price.product']
-              });
-              
-              fullSubscription = subscription;
-              
-              if (subscription && subscription.items && subscription.items.data.length > 0) {
-                subscriptionDetails = {
-                  quantity: (subscription.items.data[0].quantity || 1).toString(),
-                  plan: subscription.items.data[0].plan.interval === 'month' ? 'Mensal' : 'Anual'
-                };
-                
-                logger.info(`Detalhes da assinatura na fatura: ID ${subscription.id}, Quantidade: ${subscriptionDetails.quantity}, Plano: ${subscriptionDetails.plan}`);
-              }
-            } catch (err) {
-              logger.error(`Erro ao obter detalhes da assinatura: ${err.message}`);
-            }
-          }
-          
-          // Formatar os valores com vírgula brasileira
-          const valorTotalFormatado = (paidInvoice.amount_paid / 100).toFixed(2).replace('.', ',');
-          const valorSubtotalFormatado = (paidInvoice.subtotal / 100).toFixed(2).replace('.', ',');
-          
-          // Criar objeto com dados formatados
-          const invoiceData = {
-            id_fatura: paidInvoice.id,
-            valor: `R$ ${valorTotalFormatado}`,
-            valor_numerico: paidInvoice.amount_paid / 100,
-            valor_subtotal: `R$ ${valorSubtotalFormatado}`,
-            quantidade_proxies: parseInt(subscriptionDetails.quantity) || 1,
-            plano: subscriptionDetails.plan,
-            proxies_descricao: `${parseInt(subscriptionDetails.quantity) || 1} proxy(s) IPv6 de alta performance`,
-            preco_unitario: subscriptionDetails.plan === 'Mensal' ? '14,90' : 
-              ((paidInvoice.amount_paid / 100) / (parseInt(subscriptionDetails.quantity) || 1) / 10).toFixed(2).replace('.', ','),
-            cliente: paidInvoice.customer,
-            status: paidInvoice.status,
-            moeda: paidInvoice.currency.toUpperCase(),
-            periodo: {
-              inicio: new Date(paidInvoice.period_start * 1000).toISOString(),
-              fim: new Date(paidInvoice.period_end * 1000).toISOString()
-            },
-            proxima_fatura: paidInvoice.next_payment_attempt 
-              ? new Date(paidInvoice.next_payment_attempt * 1000).toISOString() 
-              : null,
-            // Incluir dados completos da assinatura
-            subscription: fullSubscription ? {
-              id: fullSubscription.id,
-              status: fullSubscription.status,
-              current_period_start: new Date(fullSubscription.current_period_start * 1000).toISOString(),
-              current_period_end: new Date(fullSubscription.current_period_end * 1000).toISOString(),
-              items: fullSubscription.items.data.map(item => ({
-                id: item.id,
-                quantity: item.quantity,
-                price: {
-                  id: item.price.id,
-                  unit_amount: item.price.unit_amount / 100,
-                  currency: item.price.currency,
-                  recurring: item.price.recurring ? {
-                    interval: item.price.recurring.interval
-                  } : null
-                },
-                product: item.price.product ? {
-                  id: item.price.product.id,
-                  name: item.price.product.name,
-                  description: item.price.product.description,
-                  metadata: item.price.product.metadata
-                } : null
-              }))
-            } : null
-          };
-          
-          // Enviar dados para o webhook externo
-          await sendToExternalWebhook('invoice_paid', invoiceData);
-          
-          logger.info(`Pagamento de fatura realizado: ${paidInvoice.id}`);
-          logger.info(`Detalhes da fatura: ${JSON.stringify(invoiceData)}`);
-          
-          // Aqui você pode registrar o pagamento e estender o período de serviço
-          // Exemplo: await atualizarServicoCliente(paidInvoice.customer, subscriptionDetails.quantity, new Date(paidInvoice.period_end * 1000));
-        } catch (err) {
-          logger.error(`Erro ao processar dados da fatura: ${err.message}`);
-          
-          // Enviar pelo menos as informações básicas
-          const basicInvoiceData = {
-            id_fatura: paidInvoice.id,
-            valor: `R$ ${(paidInvoice.amount_paid / 100).toFixed(2).replace('.', ',')}`,
-            valor_numerico: paidInvoice.amount_paid / 100,
-            cliente: paidInvoice.customer,
-            status: paidInvoice.status
-          };
-          
-          await sendToExternalWebhook('invoice_paid_basic', basicInvoiceData);
-          logger.info(`Pagamento de fatura (informações básicas): ${paidInvoice.id}, Valor: R$ ${(paidInvoice.amount_paid / 100).toFixed(2).replace('.', ',')}`);
-        }
-        
-        break;
-        
-      case 'invoice.payment_failed':
-        const failedInvoice = event.data.object;
-        logger.info(`Falha no pagamento da fatura: ${failedInvoice.id}, Cliente: ${failedInvoice.customer}`);
-        // Aqui você pode enviar um alerta ao cliente sobre a falha no pagamento
-        break;
-        
-      case 'payment_intent.succeeded':
-        const paymentIntent = event.data.object;
-        
-        try {
-          // Formatar o valor com vírgula brasileira
-          const valorFormatado = (paymentIntent.amount / 100).toFixed(2).replace('.', ',');
-          
-          // Registrar informações básicas do pagamento imediatamente
-          logger.info(`Pagamento recebido: ${paymentIntent.id}, Valor: R$ ${valorFormatado}`);
-          
-          // Tentar buscar a assinatura relacionada ao pagamento
-          let quantidade = '1';
-          let plano = 'Mensal';
-          let subscriptionDetails = null;
-          
-          // Tentar buscar detalhes de quantidade e plano
-          try {
-            const invoices = await stripe.invoices.list({
-              payment_intent: paymentIntent.id,
-              limit: 1,
-              expand: ['data.subscription']
-            });
-            
-            if (invoices.data.length > 0 && invoices.data[0].subscription) {
-              const subscriptionId = typeof invoices.data[0].subscription === 'string' 
-                ? invoices.data[0].subscription 
-                : invoices.data[0].subscription.id;
-              
-              const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-                expand: ['items.data.price.product']
-              });
-              
-              subscriptionDetails = subscription;
-              
-              if (subscription && subscription.items && subscription.items.data.length > 0) {
-                quantidade = (subscription.items.data[0].quantity || 1).toString();
-                plano = subscription.items.data[0].plan.interval === 'month' ? 'Mensal' : 'Anual';
-                
-                // Log detalhado da assinatura
-                logger.info(`Detalhes da assinatura encontrados: ID ${subscription.id}, Quantidade: ${quantidade}, Plano: ${plano}`);
-              }
-            }
-          } catch (err) {
-            logger.error(`Erro ao buscar detalhes da assinatura: ${err.message}`);
-          }
-          
-          // Construir os detalhes do pagamento formatados
-          const paymentData = {
-            id_pagamento: paymentIntent.id,
-            valor: `R$ ${valorFormatado}`,
-            valor_numerico: paymentIntent.amount / 100,
-            quantidade_proxies: parseInt(quantidade) || 1,
-            plano: plano,
-            cliente: paymentIntent.customer,
-            moeda: paymentIntent.currency.toUpperCase(),
-            data_pagamento: new Date(paymentIntent.created * 1000).toISOString(),
-            status: paymentIntent.status,
-            // Incluir detalhes completos da assinatura se disponíveis
-            subscription: subscriptionDetails ? {
-              id: subscriptionDetails.id,
-              status: subscriptionDetails.status,
-              current_period_start: new Date(subscriptionDetails.current_period_start * 1000).toISOString(),
-              current_period_end: new Date(subscriptionDetails.current_period_end * 1000).toISOString(),
-              items: subscriptionDetails.items.data.map(item => ({
-                id: item.id,
-                quantity: item.quantity,
-                price: {
-                  id: item.price.id,
-                  unit_amount: item.price.unit_amount / 100,
-                  currency: item.price.currency,
-                  recurring: item.price.recurring ? {
-                    interval: item.price.recurring.interval
-                  } : null
-                },
-                product: item.price.product ? {
-                  id: item.price.product.id,
-                  name: item.price.product.name,
-                  description: item.price.product.description,
-                  metadata: item.price.product.metadata
-                } : null
-              }))
-            } : null
-          };
-          
-          // Enviar dados formatados para o webhook externo
-          await sendToExternalWebhook('payment_succeeded', paymentData);
-          
-          logger.info(`Detalhes do pagamento enviados: ${JSON.stringify(paymentData)}`);
-        } catch (err) {
-          logger.error(`Erro ao processar payment_intent.succeeded: ${err.message}`);
-          logger.error(err.stack);
-          
-          // Enviar pelo menos as informações básicas
-          const basicData = {
-            id_pagamento: paymentIntent.id,
-            valor: `R$ ${(paymentIntent.amount / 100).toFixed(2).replace('.', ',')}`,
-            valor_numerico: paymentIntent.amount / 100,
-            status: paymentIntent.status
-          };
-          
-          await sendToExternalWebhook('payment_succeeded_basic', basicData);
-        }
-        
-        break;
-        
-      case 'payment_intent.payment_failed':
-        const failedPayment = event.data.object;
-        logger.warn(`Pagamento falhou: ${failedPayment.id}`);
-        break;
-        
-      default:
-        logger.info(`Evento não tratado: ${event.type}`);
-    }
-    
-    // Confirmar recebimento do evento
-    return res.status(200).json({ received: true });
-    
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
   } catch (err) {
-    logger.error(`Erro no processamento do webhook: ${err.message}`);
-    logger.error(err.stack);
-    // Não revelamos informações específicas do erro
-    return res.status(500).send('Erro interno');
+    console.error(`Erro na assinatura do webhook: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
+  // Lidar com eventos específicos
+  switch (event.type) {
+    case 'checkout.session.completed':
+      const session = event.data.object;
+      // Aqui você processaria a assinatura bem-sucedida
+      // Por exemplo, enviar um email ou mensagem para o WhatsApp
+      console.log('Checkout concluído:', session.id);
+      break;
+      
+    case 'customer.subscription.created':
+      const subscription = event.data.object;
+      console.log('Nova assinatura criada:', subscription.id);
+      // Implementar lógica de provisão de proxy
+      break;
+      
+    case 'invoice.payment_succeeded':
+      const invoice = event.data.object;
+      console.log('Pagamento de fatura bem-sucedido:', invoice.id);
+      break;
+      
+    case 'customer.subscription.deleted':
+      const canceledSubscription = event.data.object;
+      console.log('Assinatura cancelada:', canceledSubscription.id);
+      // Implementar lógica de desprovisionamento
+      break;
+      
+    default:
+      console.log(`Evento não tratado: ${event.type}`);
+  }
+
+  res.json({ received: true });
 });
 
 // Rotas de API protegidas
@@ -1053,7 +681,7 @@ apiRouter.get('/pricing-config', (req, res) => {
 // Rota para criar uma sessão de checkout (com validação)
 apiRouter.post('/create-checkout-session', validateCheckoutSession, async (req, res) => {
   try {
-    const { quantity, planType, paymentMethod } = req.body;
+    const { quantity, planType, customerName, customerEmail, customerPhone } = req.body;
     
     // Validar entrada
     if (!quantity || quantity < 1) {
@@ -1094,21 +722,20 @@ apiRouter.post('/create-checkout-session', validateCheckoutSession, async (req, 
       interval = 'year'; // Configurar como assinatura anual
     }
     
-    logger.info(`Nova sessão de checkout solicitada: ${quantity} itens, plano ${planType}, intervalo: ${interval}`);
+    logger.info(`Nova sessão de checkout solicitada: ${quantity} itens, plano ${planType}, intervalo: ${interval}, valor unitário: ${unitAmount / 100}`);
     
     try {
-      // Criar um produto para a assinatura
+      // Criar um produto individual
       const product = await stripe.products.create({
-        name: `${quantity} ${quantity > 1 ? 'Proxies IPv6' : 'Proxy IPv6'} - Plano ${interval === 'month' ? 'Mensal' : 'Anual'}`,
-        description: `${quantity} proxy(s) IPv6 de alta performance - Valor unitário: R$ ${interval === 'month' ? '14,90' : ((baseUnitPrice * (12 - yearlyDiscount)) / 12).toFixed(2).replace('.', ',')} por mês - Plano ${interval === 'month' ? 'Mensal' : 'Anual'}`,
+        name: `Proxy IPv6 - Plano ${interval === 'month' ? 'Mensal' : 'Anual'}`,
+        description: `Proxy IPv6 de alta performance - Valor unitário: R$ ${(unitAmount / 100).toFixed(2).replace('.', ',')} - Plano ${interval === 'month' ? 'Mensal' : 'Anual'}`,
         metadata: {
-          quantity: quantity.toString(),
-          price_per_unit: interval === 'month' ? '14,90' : ((baseUnitPrice * (12 - yearlyDiscount)) / 12).toFixed(2).replace('.', ','),
+          price_per_unit: (unitAmount / 100).toFixed(2).replace('.', ','),
           plan_type: interval === 'month' ? 'Mensal' : 'Anual'
         }
       });
       
-      // Criar um preço para o produto (definindo a recorrência)
+      // Criar um preço para o produto
       const price = await stripe.prices.create({
         product: product.id,
         unit_amount: unitAmount,
@@ -1116,13 +743,15 @@ apiRouter.post('/create-checkout-session', validateCheckoutSession, async (req, 
         recurring: { interval: interval },
       });
       
-      // Criar a sessão de checkout com o preço criado
-      const session = await stripe.checkout.sessions.create({
+      logger.info(`Produto criado com ID: ${product.id}, Preço criado com ID: ${price.id}`);
+      
+      // Dados para criação da sessão de checkout
+      const checkoutSessionData = {
         payment_method_types: ['card'],
         line_items: [
           {
             price: price.id,
-            quantity: quantity,
+            quantity: quantity
           },
         ],
         mode: 'subscription',
@@ -1131,27 +760,39 @@ apiRouter.post('/create-checkout-session', validateCheckoutSession, async (req, 
           enabled: true,
         },
         client_reference_id: `${quantity}_proxies_${interval}`,
-        custom_text: {
-          submit: {
-            message: `Você está comprando ${quantity} proxy(s) IPv6 de alta performance. Valor unitário: R$ ${interval === 'month' ? '14,90' : ((baseUnitPrice * (12 - yearlyDiscount)) / 12).toFixed(2).replace('.', ',')} por mês.`,
-          },
-        },
         metadata: {
           quantity: quantity.toString(),
           plan_type: interval,
           unit_price: (unitAmount / 100).toString(),
           total_price: ((unitAmount * quantity) / 100).toString(),
-          product_name: `${quantity} proxy(s) IPv6 de alta performance - Plano ${interval === 'month' ? 'Mensal' : 'Anual'}`,
-          price_per_proxy: interval === 'month' ? '14,90' : ((baseUnitPrice * (12 - yearlyDiscount)) / 10).toFixed(2).replace('.', ',')
+          product_name: `${quantity} proxy(s) IPv6 de alta performance - Plano ${interval === 'month' ? 'Mensal' : 'Anual'}`
         },
-        success_url: `${req.headers.origin}/sucesso?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.headers.origin}?canceled=true`,
-      });
+        success_url: `${req.headers.origin || req.protocol + '://' + req.get('host')}/sucesso?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.headers.origin || req.protocol + '://' + req.get('host')}/?canceled=true`,
+      };
+      
+      // Adicionar dados do cliente se fornecidos
+      if (customerEmail) {
+        checkoutSessionData.customer_email = customerEmail;
+      }
+      
+      // Adicionar texto personalizado
+      checkoutSessionData.custom_text = {
+        submit: {
+          message: `Você está comprando ${quantity} proxy(s) IPv6 de alta performance. Valor unitário: R$ ${(unitAmount / 100).toFixed(2).replace('.', ',')}`,
+        },
+      };
+      
+      // Criar a sessão de checkout
+      const session = await stripe.checkout.sessions.create(checkoutSessionData);
       
       logger.info(`Sessão de checkout criada com sucesso: ${session.id}`);
       
-      // Retorna apenas a URL de checkout, eliminando a necessidade do Stripe.js no frontend
-      res.json({ url: session.url });
+      // Retorna apenas a URL de checkout ou o ID da sessão
+      res.json({ 
+        id: session.id,
+        url: session.url 
+      });
     } catch (error) {
       logger.error(`Erro ao criar produtos/preços no Stripe: ${error.message}`);
       logger.error(`Stack trace: ${error.stack}`);
@@ -1172,28 +813,230 @@ apiRouter.post('/create-checkout-session', validateCheckoutSession, async (req, 
   }
 });
 
+// Novas rotas para MCP Stripe
+apiRouter.post('/create-customer', async (req, res) => {
+  try {
+    const { name, email, phone } = req.body;
+    
+    // Validar entrada
+    if (!name) {
+      return res.status(400).json({ error: 'Nome é obrigatório' });
+    }
+    
+    logger.info(`Criando cliente no Stripe: ${name}, ${email}`);
+    
+    // Verificar se o cliente já existe pelo e-mail (opcional)
+    let customer;
+    if (email) {
+      const existingCustomers = await mcpStripe.stripe_list_customers(email, 1);
+      
+      if (existingCustomers.data.length > 0) {
+        customer = existingCustomers.data[0];
+        logger.info(`Cliente existente encontrado: ${customer.id}`);
+        
+        // Atualizar informações do cliente se necessário
+        if (name && name !== customer.name) {
+          customer = await stripe.customers.update(customer.id, {
+            name: name,
+            phone: phone || customer.phone
+          });
+          logger.info(`Cliente atualizado: ${customer.id}`);
+        }
+      }
+    }
+    
+    // Criar novo cliente se não existir
+    if (!customer) {
+      customer = await mcpStripe.stripe_create_customer(name, email);
+      
+      // Adicionar telefone se fornecido
+      if (phone) {
+        customer = await stripe.customers.update(customer.id, {
+          phone: phone
+        });
+      }
+      
+      logger.info(`Novo cliente criado: ${customer.id}`);
+    }
+    
+    // Retornar dados do cliente
+    res.status(201).json({
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone
+    });
+    
+  } catch (error) {
+    logger.error(`Erro ao criar cliente no Stripe: ${error.message}`);
+    logger.error(`Stack trace: ${error.stack}`);
+    
+    res.status(500).json({
+      error: 'Não foi possível criar o cliente',
+      details: config.isDevelopment ? error.message : 'Erro interno'
+    });
+  }
+});
+
+apiRouter.post('/create-product', async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    
+    // Validar entrada
+    if (!name) {
+      return res.status(400).json({ error: 'Nome do produto é obrigatório' });
+    }
+    
+    logger.info(`Criando produto no Stripe: ${name}`);
+    
+    // Verificar se já existe um produto com esse nome
+    const existingProducts = await mcpStripe.stripe_list_products(100);
+    
+    const existingProduct = existingProducts.data.find(p => p.name === name);
+    
+    if (existingProduct) {
+      logger.info(`Produto existente encontrado: ${existingProduct.id}`);
+      
+      return res.status(200).json({
+        id: existingProduct.id,
+        name: existingProduct.name,
+        description: existingProduct.description
+      });
+    }
+    
+    // Criar novo produto
+    const product = await mcpStripe.stripe_create_product(name, description);
+    
+    logger.info(`Novo produto criado: ${product.id}`);
+    
+    // Retornar dados do produto
+    res.status(201).json({
+      id: product.id,
+      name: product.name,
+      description: product.description
+    });
+    
+  } catch (error) {
+    logger.error(`Erro ao criar produto no Stripe: ${error.message}`);
+    logger.error(`Stack trace: ${error.stack}`);
+    
+    res.status(500).json({
+      error: 'Não foi possível criar o produto',
+      details: config.isDevelopment ? error.message : 'Erro interno'
+    });
+  }
+});
+
+apiRouter.post('/create-price', async (req, res) => {
+  try {
+    const { product, unit_amount, currency } = req.body;
+    
+    // Validar entrada
+    if (!product || !unit_amount) {
+      return res.status(400).json({ error: 'Produto e valor são obrigatórios' });
+    }
+    
+    logger.info(`Criando preço no Stripe para produto ${product}: ${unit_amount/100} ${currency || 'BRL'}`);
+    
+    // Criar preço
+    const price = await mcpStripe.stripe_create_price(product, unit_amount, currency || 'brl');
+    
+    logger.info(`Novo preço criado: ${price.id}`);
+    
+    // Retornar dados do preço
+    res.status(201).json({
+      id: price.id,
+      product: price.product,
+      unit_amount: price.unit_amount,
+      currency: price.currency
+    });
+    
+  } catch (error) {
+    logger.error(`Erro ao criar preço no Stripe: ${error.message}`);
+    logger.error(`Stack trace: ${error.stack}`);
+    
+    res.status(500).json({
+      error: 'Não foi possível criar o preço',
+      details: config.isDevelopment ? error.message : 'Erro interno'
+    });
+  }
+});
+
+apiRouter.post('/create-payment-link', async (req, res) => {
+  try {
+    const { price, quantity, customer } = req.body;
+    
+    // Validar entrada
+    if (!price) {
+      return res.status(400).json({ error: 'Preço é obrigatório' });
+    }
+    
+    const qty = quantity || 1;
+    
+    logger.info(`Criando link de pagamento no Stripe: preço ${price}, quantidade ${qty}`);
+    
+    // Criar link de pagamento
+    const paymentLinkData = {
+      line_items: [
+        {
+          price: price,
+          quantity: qty
+        }
+      ],
+      metadata: {
+        quantity: qty.toString()
+      }
+    };
+    
+    // Adicionar cliente se fornecido
+    if (customer) {
+      paymentLinkData.customer = customer;
+    }
+    
+    // Criar link de pagamento usando o MCP
+    const paymentLink = await stripe.paymentLinks.create(paymentLinkData);
+    
+    logger.info(`Novo link de pagamento criado: ${paymentLink.id}`);
+    
+    // Retornar dados do link de pagamento
+    res.status(201).json({
+      id: paymentLink.id,
+      url: paymentLink.url
+    });
+    
+  } catch (error) {
+    logger.error(`Erro ao criar link de pagamento no Stripe: ${error.message}`);
+    logger.error(`Stack trace: ${error.stack}`);
+    
+    res.status(500).json({
+      error: 'Não foi possível criar o link de pagamento',
+      details: config.isDevelopment ? error.message : 'Erro interno'
+    });
+  }
+});
+
 // Montar as rotas da API
 app.use('/api', apiRouter);
 
 // Rota para servir a página inicial
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/public', 'index.html'));
+  res.sendFile(path.join(__dirname, '../frontend/public/index.html'));
 });
 
 // Rota para servir a página de sucesso
 app.get('/sucesso', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/public', 'sucesso.html'));
+  res.sendFile(path.join(__dirname, '../frontend/public/sucesso.html'));
 });
 
 // Rota alternativa para a página de sucesso (para compatibilidade)
 app.get('/sucesso.html', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/public', 'sucesso.html'));
+  res.sendFile(path.join(__dirname, '../frontend/public/sucesso.html'));
 });
 
 // Página 404 para rotas não encontradas
 app.use((req, res) => {
   logger.warn(`Rota não encontrada: ${req.originalUrl}`);
-  res.status(404).sendFile(path.join(__dirname, '../frontend/public', 'index.html'));
+  res.status(404).sendFile(path.join(__dirname, '../frontend/public/index.html'));
 });
 
 // Middleware para tratar erros
@@ -1233,62 +1076,13 @@ async function markEventAsProcessed(eventId) {
 authService.initialize();
 
 // Função para iniciar o servidor
-const startServer = async (port) => {
-  try {
-    const server = app.listen(port, () => {
-      logger.info(`Servidor backend rodando na porta ${port}`);
-      logger.info(`Ambiente: ${config.nodeEnv}`);
-      logger.info(`http://localhost:${port}`);
-    });
-    
-    // Configurar um timeout maior para lidar com webhooks mais longos
-    server.timeout = 120000; // 2 minutos
-    return server;
-  } catch (err) {
-    logger.error(`Erro ao iniciar servidor: ${err.message}`);
-    throw err;
-  }
+const startServer = () => {
+  app.listen(PORT, () => {
+    logger.info(`Servidor rodando na porta ${PORT}`);
+    logger.info(`Ambiente: ${config.nodeEnv}`);
+    logger.info(`http://localhost:${PORT}`);
+  });
 };
 
-// Tentar iniciar o servidor, com fallback para portas alternativas se a porta padrão estiver ocupada
-const tryStartServer = async () => {
-  // Lista de portas para tentar, começando com a porta padrão
-  const portOptions = [8080, 8081, 8082, 8083, 8000, 8001];
-  
-  // Tenta portas em sequência
-  let server = null;
-  let successPort = null;
-  
-  // Função recursiva para tentar portas
-  const tryPort = (index) => {
-    if (index >= portOptions.length) {
-      // Tentamos todas as portas sem sucesso
-      logger.error('Falha ao iniciar o servidor em todas as portas disponíveis');
-      process.exit(1);
-    }
-    
-    const port = portOptions[index];
-    return startServer(port)
-      .then(s => {
-        server = s;
-        successPort = port;
-        return { server, port };
-      })
-      .catch(err => {
-        if (err.code === 'EADDRINUSE') {
-          logger.warn(`Porta ${port} em uso, tentando a próxima opção...`);
-          return tryPort(index + 1);
-        }
-        throw err;
-      });
-  };
-  
-  // Iniciar tentativas com a primeira porta
-  return tryPort(0);
-};
-
-// Iniciar o servidor
-tryStartServer().catch(err => {
-  logger.error(`Erro fatal ao iniciar o servidor: ${err.message}`);
-  process.exit(1);
-}); 
+// Tentar iniciar o servidor
+startServer(); 

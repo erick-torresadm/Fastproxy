@@ -31,21 +31,60 @@ function isStrongSecret(secret) {
   const hasNumbers = /[0-9]/.test(secret);
   const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(secret);
   
-  return (hasUpperCase + hasLowerCase + hasNumbers + hasSpecialChars) >= 3;
+  // Reforçar critérios de segurança
+  const requiredCriteria = hasUpperCase + hasLowerCase + hasNumbers + hasSpecialChars;
+  
+  // Verificar padrões comuns que enfraquecem senhas
+  const hasSequentialChars = /012|123|234|345|456|567|678|789|abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz/i.test(secret);
+  const hasRepeatedChars = /(.)\1{2,}/i.test(secret); // 3 ou mais caracteres repetidos
+  
+  // Falha se contiver padrões fracos
+  if (hasSequentialChars || hasRepeatedChars) {
+    return false;
+  }
+  
+  return requiredCriteria >= 3;
 }
 
 // Função para gerar um segredo forte
 function generateStrongSecret() {
-  return crypto.randomBytes(32).toString('base64');
+  const length = 36; // Tamanho aumentado para maior segurança
+  const charset = {
+    uppercase: 'ABCDEFGHJKLMNPQRSTUVWXYZ', // Excluindo caracteres ambíguos
+    lowercase: 'abcdefghijkmnopqrstuvwxyz', // Excluindo caracteres ambíguos
+    numbers: '23456789', // Excluindo 0 e 1 para evitar confusão
+    special: '!@#$%^&*()_+-=[]{}|;:,./?'
+  };
+  
+  let secret = '';
+  let categories = ['uppercase', 'lowercase', 'numbers', 'special'];
+  
+  // Garantir pelo menos 1 caractere de cada categoria
+  categories.forEach(category => {
+    const randomIndex = Math.floor(Math.random() * charset[category].length);
+    secret += charset[category][randomIndex];
+  });
+  
+  // Preencher o restante do segredo
+  for (let i = categories.length; i < length; i++) {
+    const category = categories[Math.floor(Math.random() * categories.length)];
+    const randomIndex = Math.floor(Math.random() * charset[category].length);
+    secret += charset[category][randomIndex];
+  }
+  
+  // Embaralhar o segredo para que os caracteres obrigatórios não fiquem sempre no início
+  secret = secret.split('').sort(() => 0.5 - Math.random()).join('');
+  
+  return secret;
 }
 
 // Verificar se .env existe
-if (!fs.existsSync('.env')) {
+if (!fs.existsSync(path.join(__dirname, '.env'))) {
   logger.error('Arquivo .env não encontrado. Criando a partir do template...');
   
-  if (fs.existsSync('env.template')) {
+  if (fs.existsSync(path.join(__dirname, 'env.template'))) {
     try {
-      const envTemplate = fs.readFileSync('env.template', 'utf8');
+      const envTemplate = fs.readFileSync(path.join(__dirname, 'env.template'), 'utf8');
       
       // Gerar novos segredos fortes
       const webhookSecret = generateStrongSecret();
@@ -75,7 +114,7 @@ if (!fs.existsSync('.env')) {
         })
         .join('\n');
       
-      fs.writeFileSync('.env', envContent);
+      fs.writeFileSync(path.join(__dirname, '.env'), envContent);
       console.log(`${colors.green}✓ Arquivo .env criado com segredos fortes${colors.reset}`);
     } catch (err) {
       console.error(`${colors.red}✗ Erro ao criar arquivo .env: ${err.message}${colors.reset}`);
@@ -90,7 +129,7 @@ if (!fs.existsSync('.env')) {
   
   // Verificar conteúdo do .env
   try {
-    const envContent = fs.readFileSync('.env', 'utf8');
+    const envContent = fs.readFileSync(path.join(__dirname, '.env'), 'utf8');
     
     // Verificar se há duplicações
     const lines = envContent.split('\n');

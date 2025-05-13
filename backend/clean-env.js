@@ -44,8 +44,9 @@ try {
   // Arquivo .env limpo
   const envContent = `# Stripe API Keys
 # Use sk_test for development and sk_live only in production
-STRIPE_SECRET_KEY=sk_test_your_test_key
-STRIPE_PUBLISHABLE_KEY=pk_test_your_test_key
+# NUNCA COMITE CHAVES REAIS EM ARQUIVOS DE CÓDIGO
+STRIPE_SECRET_KEY=sk_test_SUBSTITUA_PELA_SUA_CHAVE_SECRETA
+STRIPE_PUBLISHABLE_KEY=pk_test_SUBSTITUA_PELA_SUA_CHAVE_PUBLICA
 
 # Server Port
 PORT=3000
@@ -67,7 +68,7 @@ RATE_LIMIT_MAX_REQUESTS=100
 
 # Configuração de Webhook Externo
 # URL para onde os dados de pagamento serão enviados após processamento
-EXTERNAL_WEBHOOK_URL=https://seu-servidor-webhook.com/endpoint
+EXTERNAL_WEBHOOK_URL=https://seu-servico-webhook.com/endpoint
 # Defina como "true" para enviar dados para webhook externo
 SEND_TO_EXTERNAL_WEBHOOK=true
 # Segredo para assinatura HMAC do webhook externo

@@ -1,6 +1,7 @@
 /**
  * Configurações da aplicação
  */
+const path = require('path');
 
 // Carregar variáveis de ambiente baseado no ambiente
 const env = process.env.NODE_ENV || 'development';
@@ -9,15 +10,15 @@ const dotenv = require('dotenv');
 // Carregar arquivo .env apropriado baseado no ambiente
 if (env === 'production') {
   // Em produção, usar .env.production
-  const result = dotenv.config({ path: '.env.production' });
+  const result = dotenv.config({ path: path.join(__dirname, '..', '.env.production') });
   if (result.error) {
     console.error('Erro ao carregar .env.production:', result.error);
     // Tentar o .env padrão como fallback
-    dotenv.config();
+    dotenv.config({ path: path.join(__dirname, '..', '.env') });
   }
 } else {
   // Em outros ambientes (desenvolvimento, teste), usar .env
-  dotenv.config();
+  dotenv.config({ path: path.join(__dirname, '..', '.env') });
 }
 
 const logger = require('../utils/logger');
@@ -60,8 +61,8 @@ const config = {
   },
   
   // Configurações do servidor
-  port: parseInt(process.env.PORT || '3000', 10),
-  alternativePorts: [3001, 3002, 8080, 8081],
+  port: parseInt(process.env.PORT || '8080', 10),
+  alternativePorts: [8081, 8082, 8083, 3000, 3001],
   
   // Configurações do Stripe
   stripe: {
