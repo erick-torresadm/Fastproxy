@@ -1,0 +1,69 @@
+{
+  "site": {
+    "title": "FastProxy - Private Socks5 and HTTPs Proxies",
+    "description": "Private proxies with high speed and stability for your operations"
+  },
+  "header": {
+    "home": "home",
+    "plans": "plans",
+    "contact": "contact",
+    "tutorial": "tutorial",
+    "access": "access",
+    "login": "login"
+  },
+  "hero": {
+    "title": "the private proxy you've always wanted.",
+    "subtitle": "stable connections and high performance for your operations",
+    "cta": "get proxy",
+    "notice": "automatic delivery via whatsapp and email"
+  },
+  "features": {
+    "dedicatedIP": "dedicated IP",
+    "support": "24/7 support",
+    "anonymity": "high anonymity",
+    "speed": "high speed",
+    "connections": "multiple connections"
+  },
+  "about": {
+    "title": "we are 100% digital and bureaucracy-free",
+    "text": "IP dedicated to a real user, with up to 99% uptime and responsive support in 1 minute, available 24/7"
+  },
+  "benefits": {
+    "title": "the proxy you've always wanted",
+    "subtitle": "stable connections and humanized support for your operation",
+    "speed": {
+      "title": "unbeatable speed",
+      "text": "servers strategically distributed throughout Brazil, ensuring maximum speed and performance wherever you are"
+    },
+    "operation": {
+      "title": "fluid operation",
+      "text": "enjoy the efficiency that our proxies bring to your operation, helping you reach new levels of revenue"
+    },
+    "ips": {
+      "title": "high-quality dedicated IPs",
+      "text": "total control of next-generation proxies, optimized to maximize the performance of your operation"
+    },
+    "connections": {
+      "title": "goodbye to slow connections",
+      "text": "IPV4 and IPV6 proxies that overcome the slowness of other connections, raising the performance of your operation to another level"
+    }
+  },
+  "pricing": {
+    "title": "plans with special prices",
+    "subtitle": "choose what best fits your profile",
+    "monthly": "monthly",
+    "annual": "annual",
+    "discount": "free months",
+    "button": "buy now"
+  },
+  "faq": {
+    "title": "frequently asked questions",
+    "subtitle": "everything you need to know before purchasing"
+  },
+  "contact": {
+    "title": "get in touch",
+    "subtitle": "we are ready to assist you",
+    "button": "send message",
+    "whatsapp": "chat on whatsapp"
+  }
+} 

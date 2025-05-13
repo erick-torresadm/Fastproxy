@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com 'unsafe-inline'; connect-src 'self' http://localhost:8080 https://api.stripe.com https://*.stripe.com; frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://*.stripe.com; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;">
+    <title>FastProxy - Proxies Privados Socks5 e HTTPs</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Carregamento do Stripe com defer para não bloquear o carregamento da página -->
+    <script src="https://js.stripe.com/v3/" defer></script>
+    <!-- O Stripe será carregado pelo backend quando necessário -->
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="#"><img src="images/LOGO FAST PROXY.png" alt="FastProxy Logo"></a>
+            </div>
+            <nav class="desktop-nav">
+                <ul>
+                    <li><a href="#">início</a></li>
+                    <li><a href="#planos">planos</a></li>
+                    <li><a href="#contato">contato</a></li>
+                    <li><a href="#">tutorial</a></li>
+                </ul>
+            </nav>
+            <div class="header-buttons">
+                <a href="#" class="btn btn-outline">acessar</a>
+                <a href="#" class="btn btn-primary">login</a>
+            </div>
+            <div class="mobile-menu-btn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu">
+        <ul>
+            <li><a href="#">início</a></li>
+            <li><a href="#planos">planos</a></li>
+            <li><a href="#contato">contato</a></li>
+            <li><a href="#">tutorial</a></li>
+        </ul>
+        <div class="mobile-buttons">
+            <a href="#" class="btn btn-outline">acessar</a>
+            <a href="#" class="btn btn-primary">login</a>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>o proxy privado que você sempre quis.</h1>
+                <h2>conexões estáveis e alta performance para suas operações</h2>
+                <p>recebimento automático no whatsapp e email</p>
+                <a href="#planos" class="btn btn-primary btn-lg">pedir proxy</a>
+            </div>
+            <div class="hero-video" id="hero-media">
+                <div class="video-container">
+                    <iframe id="youtube-video" 
+                            src="https://www.youtube.com/embed/WadY7P_6RNg?rel=0&showinfo=0&controls=1&enablejsapi=1" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                    </iframe>
+                    <div class="video-overlay">
+                        <button class="play-btn" id="play-video">
+                            <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="video-reflection"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <img src="images/ICON 1.png" alt="IP Dedicado">
+                    </div>
+                    <h3>IP dedicado</h3>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <img src="images/ICON 2.png" alt="Suporte 24/7">
+                    </div>
+                    <h3>suporte 24/7</h3>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <img src="images/icon 3.png" alt="Alta Anonimidade">
+                    </div>
+                    <h3>alta anonimidade</h3>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <img src="images/ICON 4.png" alt="Alta Velocidade">
+                    </div>
+                    <h3>alta velocidade</h3>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <img src="images/ICON 5.png" alt="Várias Conexões">
+                    </div>
+                    <h3>várias conexões</h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about">
+        <div class="container">
+            <div class="about-content">
+                <h2>somos 100% digitais e sem burocracia</h2>
+                <p>IP dedicado a um usuário real, com até 99% de uptime e suporte responsivo em 1 minuto, disponível 24/7</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="benefits">
+        <div class="container">
+            <div class="section-header">
+                <h2>o proxy que você sempre quis</h2>
+                <p>conexões estáveis e suporte humanizado para sua operação</p>
+            </div>
+            
+            <div class="benefits-row">
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <img src="images/ICON 4.png" alt="Velocidade">
+                    </div>
+                    <h3>velocidade imbatível</h3>
+                    <p>servidores distribuídos estrategicamente pelo Brasil, garantindo máxima velocidade e performance onde quer que você esteja</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <img src="images/ICON 2.png" alt="Operação">
+                    </div>
+                    <h3>operação fluida</h3>
+                    <p>desfrute da eficiência que nossos proxies trazem à sua operação, ajudando você a alcançar novos patamares de faturamento</p>
+                </div>
+            </div>
+            
+            <div class="benefits-row">
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <img src="images/ICON 1.png" alt="IPs Dedicados">
+                    </div>
+                    <h3>IPs dedicados de alta qualidade</h3>
+                    <p>controle total de proxies de última geração, otimizados para maximizar o desempenho da sua operação</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <img src="images/ICON 5.png" alt="Conexões">
+                    </div>
+                    <h3>adeus a conexões lentas</h3>
+                    <p>proxies IPV4 e IPV6 que superam a lentidão de outras conexões, elevando a performance da sua operação a outro nível</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Company Description -->
+    <section class="company-desc">
+        <div class="container">
+            <div class="company-desc-content">
+                <p>a FastProxy é a operadora de proxies que você sempre quis. conecte-se com transparência, sem preocupações e com um time pronto para te ajudar.</p>
+                <a href="#planos" class="btn btn-primary">pedir proxy</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Integration Section -->
+    <section class="integration">
+        <div class="container">
+            <div class="section-header">
+                <h2>integrando com todos os multilogins</h2>
+                <p>a FastProxy foi rigorosamente testada e validada em todos os principais multilogins do mercado, garantindo compatibilidade total para as suas operações</p>
+            </div>
+            
+            <div class="integration-image">
+                <img src="images/Usa-vs-nao-usa-1-1024x689.png" alt="Comparativo de uso">
+            </div>
+            
+            <div class="benefits-badges">
+                <div class="badge">
+                    <span>o mais indicado!</span>
+                </div>
+                <div class="badge">
+                    <span>menos bloqueios</span>
+                </div>
+                <div class="badge">
+                    <span>mais faturamento</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- For Who Section -->
+    <section class="for-who">
+        <div class="container">
+            <div class="section-header">
+                <h2>para quem serve?</h2>
+                <p>para todos que estão cansados de enfrentar bloqueios constantes. evite cruzamento de dados com FastProxy, uma solução altamente eficaz para prevenir bloqueios desnecessários</p>
+            </div>
+            
+            <div class="target-audience">
+                <div class="target-item">
+                    <div class="target-icon">
+                        <i class="fas fa-handshake"></i>
+                    </div>
+                    <h3>co-produtores</h3>
+                </div>
+                <div class="target-item">
+                    <div class="target-icon">
+                        <i class="fas fa-laptop-code"></i>
+                    </div>
+                    <h3>infoprodutores</h3>
+                </div>
+                <div class="target-item">
+                    <div class="target-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>gestores de tráfego</h3>
+                </div>
+                <div class="target-item">
+                    <div class="target-icon">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <h3>fornecedores de BM</h3>
+                </div>
+            </div>
+            
+            <div class="service-info">
+                <div class="service-image">
+                    <img src="images/Group 1171275303.png" alt="Atendimento FastProxy">
+                </div>
+                <div class="service-text">
+                    <h2>atendimento digital e humanizado</h2>
+                    <p>solicite seu acesso ao painel da FastProxy de forma rápida e fácil! nosso atendimento humano garante que você receba todas as informações e o seu proxy diretamente pelo WhatsApp e e-mail, em apenas alguns minutos</p>
+                    <a href="#" class="btn btn-primary">pedir proxy</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="planos" class="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2>planos de proxy ipv6</h2>
+                <p>proxies de alta performance para suas operações</p>
+                <div class="offer-banner">
+                    <div class="offer-text">
+                        <span class="limited-offer">Oferta por tempo limitado</span>
+                        <p>Aproveite preços especiais. A oferta termina em:</p>
+                    </div>
+                    <div class="offer-timer" id="offer-timer">
+                        <!-- Preenchido via JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="plan-types">
+                <button class="plan-type-btn active" data-plan-type="monthly">mensal</button>
+                <button class="plan-type-btn" data-plan-type="yearly">anual</button>
+            </div>
+            
+            <!-- Pricing Calculator -->
+            <div class="pricing-calculator">
+                <div class="calculator-card">
+                    <div class="calculator-header">
+                        <h3>Proxy IPv6 de Alta Performance</h3>
+                        <p class="calculator-subtitle">ideal para uso em redes sociais e múltiplas contas</p>
+                    </div>
+                    
+                    <div class="price-display" id="price-display">
+                        <div class="discount-percentage">-63%</div>
+                        <div class="original-price" id="original-price">R$ 39,90</div>
+                        <div class="price-main">R$ 14,90</div>
+                        <p class="price-period">por proxy / mês</p>
+                    </div>
+                    
+                    <div class="quantity-selector">
+                        <label for="proxy-quantity">Quantidade de Proxies:</label>
+                        <div class="quantity-controls">
+                            <button class="quantity-btn" id="decrease-btn">-</button>
+                            <input type="number" id="proxy-quantity" min="1" max="100" value="1">
+                            <button class="quantity-btn" id="increase-btn">+</button>
+                        </div>
+                    </div>
+                    
+                    <div class="total-price">
+                        <div class="total-label">Total:</div>
+                        <div class="total-amount" id="total-amount">R$ 14,90</div>
+                        <div class="discount-info" id="discount-info"></div>
+                    </div>
+                    
+                    <div class="features-list">
+                        <ul>
+                            <li><i class="fas fa-check"></i> Proxies IPv6 de alta velocidade</li>
+                            <li><i class="fas fa-check"></i> Ideal para Facebook e outras redes</li>
+                            <li><i class="fas fa-check"></i> Suporte prioritário 24/7</li>
+                            <li><i class="fas fa-check"></i> Renovação automática</li>
+                            <li><i class="fas fa-check"></i> Conexões estáveis</li>
+                        </ul>
+                    </div>
+                    
+                    <button id="checkout-button" class="btn btn-primary btn-lg">Finalizar Compra</button>
+                    <p class="payment-options">ou</p>
+                    <a href="https://wa.me/5511999999999?text=Olá,%20tenho%20interesse%20em%20comprar%20proxies%20FastProxy" class="btn btn-whatsapp btn-lg">
+                        <i class="fab fa-whatsapp"></i> Comprar pelo WhatsApp
+                    </a>
+                </div>
+                
+                <!-- Exemplo de dados do proxy -->
+                <div class="proxy-example">
+                    <h3>Comparativo do Mercado</h3>
+                    
+                    <div class="comparison-table">
+                        <div class="comparison-header">
+                            <div class="comparison-cell header-cell"></div>
+                            <div class="comparison-cell header-cell">Uso de 4G</div>
+                            <div class="comparison-cell header-cell">Proxies Comuns</div>
+                            <div class="comparison-cell header-cell featured">
+                                <div class="best-option-badge">Melhor Opção</div>
+                                FastProxy
+                            </div>
+                        </div>
+                        
+                        <div class="comparison-row">
+                            <div class="comparison-cell feature-cell">Segurança</div>
+                            <div class="comparison-cell"><i class="fas fa-check yes"></i></div>
+                            <div class="comparison-cell"><i class="fas fa-check yes"></i></div>
+                            <div class="comparison-cell featured"><i class="fas fa-check yes"></i></div>
+                        </div>
+                        
+                        <div class="comparison-row">
+                            <div class="comparison-cell feature-cell">Menos risco de bloqueio</div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell"><i class="fas fa-check yes"></i></div>
+                            <div class="comparison-cell featured"><i class="fas fa-check yes"></i></div>
+                        </div>
+                        
+                        <div class="comparison-row">
+                            <div class="comparison-cell feature-cell">Velocidade</div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell featured"><i class="fas fa-check yes"></i></div>
+                        </div>
+                        
+                        <div class="comparison-row">
+                            <div class="comparison-cell feature-cell">Qualidade</div>
+                            <div class="comparison-cell"><i class="fas fa-check yes"></i></div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell featured"><i class="fas fa-check yes"></i></div>
+                        </div>
+                        
+                        <div class="comparison-row">
+                            <div class="comparison-cell feature-cell">Sem restrição</div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell featured"><i class="fas fa-check yes"></i></div>
+                        </div>
+                        
+                        <div class="comparison-row">
+                            <div class="comparison-cell feature-cell">Uso fácil</div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell featured"><i class="fas fa-check yes"></i></div>
+                        </div>
+                        
+                        <div class="comparison-row">
+                            <div class="comparison-cell feature-cell">Suporte</div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell featured"><i class="fas fa-check yes"></i></div>
+                        </div>
+                        
+                        <div class="comparison-row">
+                            <div class="comparison-cell feature-cell">Entrega Personalizada</div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell"><i class="fas fa-times no"></i></div>
+                            <div class="comparison-cell featured"><i class="fas fa-check yes"></i></div>
+                        </div>
+                    </div>
+                    
+                    <div class="proxy-features-list">
+                        <h4>Seu proxy inclui:</h4>
+                        <ul>
+                            <li>
+                                <div class="feature-icon-box">
+                                    <i class="fas fa-network-wired"></i>
+                                </div>
+                                <div class="feature-text">
+                                    <strong>Até 1 Gbit/s</strong>
+                                    <span>Velocidade incrível para suas operações</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="feature-icon-box">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div class="feature-text">
+                                    <strong>Http/Https/Socks5</strong>
+                                    <span>Suporte a múltiplos protocolos</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="feature-icon-box">
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <div class="feature-text">
+                                    <strong>Qualidade Premium</strong>
+                                    <span>IPs de alta qualidade e desempenho</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="feature-icon-box">
+                                    <i class="fas fa-infinity"></i>
+                                </div>
+                                <div class="feature-text">
+                                    <strong>Tráfego Ilimitado</strong>
+                                    <span>Sem limites de banda ou transferência</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="feature-icon-box">
+                                    <i class="fas fa-headset"></i>
+                                </div>
+                                <div class="feature-text">
+                                    <strong>Suporte 24/7/365</strong>
+                                    <span>Atendimento a qualquer hora do dia</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Discount Info -->
+            <div class="discount-banner">
+                <div class="discount-content">
+                    <i class="fas fa-tag"></i>
+                    <div class="discount-text">
+                        <h4>Economize com planos anuais</h4>
+                        <p>Ao escolher o plano anual, você recebe 2 meses grátis</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Plataformas Compatíveis Section -->
+    <section class="compatible-platforms">
+        <div class="container">
+            <div class="section-header">
+                <h2>compatível com todas as principais plataformas</h2>
+                <p>nossos proxies funcionam perfeitamente com as melhores ferramentas do mercado</p>
+            </div>
+            
+            <div class="platforms-grid">
+                <div class="platform-card">
+                    <div class="platform-logo platform-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Lauth</h3>
+                    <span class="platform-badge">Parceiro Oficial</span>
+                </div>
+                
+                <div class="platform-card">
+                    <div class="platform-logo platform-icon">
+                        <i class="fas fa-fish"></i>
+                    </div>
+                    <h3>Dolphin Anty</h3>
+                    <span class="platform-badge">Compatível</span>
+                </div>
+                
+                <div class="platform-card">
+                    <div class="platform-logo platform-icon">
+                        <i class="fas fa-ad"></i>
+                    </div>
+                    <h3>AdsPower</h3>
+                    <span class="platform-badge">Compatível</span>
+                </div>
+                
+                <div class="platform-card">
+                    <div class="platform-logo platform-icon">
+                        <i class="fas fa-user-secret"></i>
+                    </div>
+                    <h3>Multilogin</h3>
+                    <span class="platform-badge">Compatível</span>
+                </div>
+                
+                <div class="platform-card">
+                    <div class="platform-logo platform-icon">
+                        <i class="fas fa-user-ninja"></i>
+                    </div>
+                    <h3>Incogniton</h3>
+                    <span class="platform-badge">Compatível</span>
+                </div>
+                
+                <div class="platform-card">
+                    <div class="platform-logo platform-icon">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </div>
+                    <h3>GoLogin</h3>
+                    <span class="platform-badge">Compatível</span>
+                </div>
+            </div>
+            
+            <div class="compatible-info">
+                <p>Não importa qual multilogin você usa, nossos proxies foram testados e aprovados para funcionar perfeitamente.</p>
+                <a href="#planos" class="btn btn-primary">Adquirir Agora</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stripe Checkout Modal -->
+    <div id="checkout-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div class="modal-header">
+                <h3>Finalizar sua compra</h3>
+            </div>
+            <div class="modal-body">
+                <div class="stripe-secure-badge">
+                    <img src="https://stripe.com/img/v3/home/twitter-card.png" alt="Stripe" class="stripe-logo">
+                    <div class="stripe-secure-text">
+                        <p>Pagamento processado com segurança pelo Stripe</p>
+                        <small>Ambiente seguro e criptografado</small>
+                    </div>
+                </div>
+                
+                <div class="order-summary">
+                    <h4>Resumo do Pedido</h4>
+                    <div class="order-details">
+                        <div class="order-item">
+                            <span class="item-name">Proxies IPv6</span>
+                            <span class="item-quantity" id="modal-quantity">1x</span>
+                            <span class="item-price" id="modal-price">R$ 14,90</span>
+                        </div>
+                        <div class="order-period" id="modal-period">Cobrança Mensal</div>
+                        <div class="order-total">
+                            <span>Total:</span>
+                            <span id="modal-total">R$ 14,90</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="payment-options" class="payment-options-container">
+                    <h4>Escolha como pagar</h4>
+                    <div class="payment-buttons">
+                        <button id="stripe-payment" class="btn btn-primary payment-btn">
+                            <i class="fas fa-credit-card payment-icon"></i>
+                            <span>Cartão de Crédito</span>
+                        </button>
+                        
+                        <p class="payment-info-text">
+                            O pagamento será processado de forma segura pelo Stripe.
+                            <br>Você será redirecionado para a página segura de pagamento.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>perguntas frequentes</h2>
+                <p>tire suas dúvidas sobre nossos serviços</p>
+            </div>
+            
+            <div class="faq-container">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>O que é um proxy privado?</h3>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Um proxy privado é um servidor intermediário dedicado exclusivamente para você, que redireciona seu tráfego de internet, garantindo anonimato, segurança e evitando bloqueios. Diferente dos proxies compartilhados, o proxy privado é usado apenas por você, oferecendo maior velocidade e segurança.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Como recebo os dados de acesso ao meu proxy?</h3>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Você receberá os dados de acesso automaticamente por WhatsApp e email logo após a confirmação do pagamento. O processo é 100% automatizado e geralmente leva apenas alguns minutos.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Quais protocolos são suportados?</h3>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Nossos proxies suportam os protocolos HTTP, HTTPS e SOCKS5, garantindo compatibilidade com praticamente qualquer aplicação ou serviço que necessite de um proxy.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Posso usar em qualquer multilogin?</h3>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Sim! Nossos proxies são compatíveis com todos os principais softwares de multilogin do mercado, incluindo Lauth, Dolphin Anty, AdsPower, Multilogin, Incogniton e GoLogin.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Existe limite de tráfego ou banda?</h3>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Não! Oferecemos tráfego completamente ilimitado em todos os nossos planos. Você pode usar o seu proxy tanto quanto precisar, sem preocupações com limites ou cobranças adicionais.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Como funciona a renovação?</h3>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>A renovação é automática. Quando seu plano estiver próximo do vencimento, você receberá um aviso por email e WhatsApp. O pagamento será processado automaticamente usando o mesmo método de pagamento, garantindo que seu serviço não seja interrompido.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Posso cancelar a qualquer momento?</h3>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Sim! Você pode cancelar seu plano a qualquer momento diretamente pelo painel do cliente ou entrando em contato com nosso suporte. Não há taxas de cancelamento ou burocracia.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>O suporte está disponível 24/7?</h3>
+                        <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Sim! Nossa equipe de suporte está disponível 24 horas por dia, 7 dias por semana, 365 dias por ano. Você pode entrar em contato via WhatsApp ou email, e geralmente respondemos em poucos minutos.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="faq-more-questions">
+                <p>Ainda tem dúvidas? Entre em contato com nosso suporte.</p>
+                <a href="#contato" class="btn btn-primary">Falar com o Suporte</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contato" class="contact">
+        <div class="container">
+            <div class="section-header">
+                <h2>alguma dúvida? entre em contato</h2>
+                <p>nossa equipe está à disposição para te ajudar e tirar todas as suas dúvidas</p>
+            </div>
+            <a href="#" class="btn btn-whatsapp">
+                <i class="fab fa-whatsapp"></i> conversar pelo whatsapp
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <h3>tecnologia & segurança em meios de conexão</h3>
+                <a href="#planos" class="btn btn-primary">pedir proxy</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 FastProxy</p>
+                <div class="social-media">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+                <a href="#" class="scroll-top">
+                    rolar para cima <i class="fas fa-arrow-up"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html> 

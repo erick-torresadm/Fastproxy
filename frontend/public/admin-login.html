@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-br" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com 'unsafe-inline'; connect-src 'self' http://localhost:8080 https://api.stripe.com https://*.stripe.com; frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://*.stripe.com; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;">
+    <title>FastProxy - Login Administrativo</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: linear-gradient(145deg, rgba(15, 15, 35, 0.8), rgba(20, 20, 50, 0.8));
+            border-radius: var(--radius-lg);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .login-container h2 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .login-form .input-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .login-form label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .login-form input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 144, 255, 0.3);
+        }
+
+        .form-error {
+            color: var(--error-color);
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .login-form button {
+            width: 100%;
+            padding: 14px 0;
+            margin-top: 10px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .login-form button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .login-error {
+            background: rgba(255, 70, 70, 0.2);
+            color: var(--error-color);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Login Administrativo</h2>
+        <div class="login-error" id="login-error">
+            Credenciais inválidas. Tente novamente.
+        </div>
+        <form class="login-form" id="login-form">
+            <div class="input-group">
+                <label for="username">Nome de Usuário</label>
+                <input type="text" id="username" name="username" required>
+                <div class="form-error" id="username-error">
+                    Digite um nome de usuário válido
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password" required>
+                <div class="form-error" id="password-error">
+                    A senha é obrigatória
+                </div>
+            </div>
+            <button type="submit" id="login-button">Entrar</button>
+        </form>
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('login-form');
+            const loginButton = document.getElementById('login-button');
+            const loadingElement = document.getElementById('loading');
+            const loginError = document.getElementById('login-error');
+            
+            // Verificar se já está autenticado e redirecionar
+            if (authService.isAuthenticated()) {
+                window.location.href = '/admin-dashboard.html';
+                return;
+            }
+            
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Ocultar mensagem de erro
+                loginError.style.display = 'none';
+                
+                // Obter dados
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                
+                // Validação básica
+                let isValid = true;
+                
+                if (!username) {
+                    document.getElementById('username-error').style.display = 'block';
+                    isValid = false;
+                } else {
+                    document.getElementById('username-error').style.display = 'none';
+                }
+                
+                if (!password) {
+                    document.getElementById('password-error').style.display = 'block';
+                    isValid = false;
+                } else {
+                    document.getElementById('password-error').style.display = 'none';
+                }
+                
+                if (!isValid) return;
+                
+                // Mostrar carregamento
+                loginButton.disabled = true;
+                loadingElement.style.display = 'block';
+                
+                try {
+                    // Fazer login
+                    const result = await authService.login(username, password);
+                    
+                    if (result.success) {
+                        // Redirecionar para o dashboard
+                        window.location.href = '/admin-dashboard.html';
+                    } else {
+                        // Mostrar erro
+                        loginError.style.display = 'block';
+                        loginButton.disabled = false;
+                        loadingElement.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Erro durante login:', error);
+                    loginError.style.display = 'block';
+                    loginButton.disabled = false;
+                    loadingElement.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
