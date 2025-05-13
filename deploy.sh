@@ -42,4 +42,4 @@ docker-compose ps
 
 # Mostrar logs
 echo "Mostrando logs dos containers..."
-docker-compose logs -f 
+docker-compose logs -f
