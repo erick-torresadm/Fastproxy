@@ -1,24 +1,24 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Copiar arquivos de configuração
+# Copiar apenas os arquivos de dependências primeiro
 COPY package*.json ./
 
 # Instalar dependências
 RUN npm install --production
 
-# Copiar o código fonte
+# Copiar o resto dos arquivos
 COPY . .
 
 # Criar volume para persistência de dados
 VOLUME ["/app/logs"]
 
-# Expor porta
-EXPOSE 3000
+# Expor a porta
+EXPOSE 8080
 
 # Variáveis de ambiente
 ENV NODE_ENV=production
 
-# Iniciar o servidor
-CMD ["npm", "start"] 
+# Comando para iniciar
+CMD ["node", "server.js"] 

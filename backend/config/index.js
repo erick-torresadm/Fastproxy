@@ -9,12 +9,12 @@ const dotenv = require('dotenv');
 
 // Carregar arquivo .env apropriado baseado no ambiente
 if (env === 'production') {
-  // Em produção, usar .env.production
-  const result = dotenv.config({ path: path.join(__dirname, '..', '.env.production') });
-  if (result.error) {
-    console.error('Erro ao carregar .env.production:', result.error);
-    // Tentar o .env padrão como fallback
-    dotenv.config({ path: path.join(__dirname, '..', '.env') });
+  // Em produção, tentar carregar .env.production, mas não falhar se não existir
+  try {
+    dotenv.config({ path: path.join(__dirname, '..', '.env.production') });
+  } catch (error) {
+    // Ignorar erro se o arquivo não existir, pois as variáveis podem vir do docker-compose
+    console.log('Arquivo .env.production não encontrado, usando variáveis de ambiente do sistema');
   }
 } else {
   // Em outros ambientes (desenvolvimento, teste), usar .env
