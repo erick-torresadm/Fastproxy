@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com 'unsafe-inline'; connect-src 'self' http://localhost:8080 https://api.stripe.com https://*.stripe.com; frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://*.stripe.com; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;">
-    <title>Pagamento Confirmado - FastProxy</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com; connect-src 'self' http://localhost:8080 http://localhost:8081 https://api.stripe.com https://*.stripe.com; frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://*.stripe.com https://www.youtube.com https://youtube.com; img-src 'self' data: https://stripe.com https://*.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;">
+    <title>Compra Concluída com Sucesso! - FastProxy</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -14,19 +14,18 @@
     <header>
         <div class="container">
             <div class="logo">
-                <a href="index.html"><img src="images/LOGO FAST PROXY.png" alt="FastProxy Logo"></a>
+                <a href="/"><img src="images/LOGO FAST PROXY.png" alt="FastProxy Logo"></a>
             </div>
             <nav class="desktop-nav">
                 <ul>
-                    <li><a href="index.html">início</a></li>
-                    <li><a href="index.html#planos">planos</a></li>
-                    <li><a href="index.html#contato">contato</a></li>
-                    <li><a href="#">tutorial</a></li>
+                    <li><a href="/">início</a></li>
+                    <li><a href="/#planos">planos</a></li>
+                    <li><a href="/#contato">contato</a></li>
+                    <li><a href="/#tutorial">tutorial</a></li>
                 </ul>
             </nav>
             <div class="header-buttons">
-                <a href="#" class="btn btn-outline">acessar</a>
-                <a href="#" class="btn btn-primary">login</a>
+                <a href="/#contato" class="btn btn-primary">Fale conosco</a>
             </div>
             <div class="mobile-menu-btn">
                 <span></span>
@@ -39,32 +38,72 @@
     <!-- Mobile Menu -->
     <div class="mobile-menu">
         <ul>
-            <li><a href="index.html">início</a></li>
-            <li><a href="index.html#planos">planos</a></li>
-            <li><a href="index.html#contato">contato</a></li>
-            <li><a href="#">tutorial</a></li>
+            <li><a href="/">início</a></li>
+            <li><a href="/#planos">planos</a></li>
+            <li><a href="/#contato">contato</a></li>
+            <li><a href="/#tutorial">tutorial</a></li>
         </ul>
         <div class="mobile-buttons">
-            <a href="#" class="btn btn-outline">acessar</a>
-            <a href="#" class="btn btn-primary">login</a>
+            <a href="/#contato" class="btn btn-primary">Fale conosco</a>
         </div>
     </div>
 
     <!-- Success Section -->
     <section class="success-section">
         <div class="container">
-            <div class="success-card">
+            <div class="success-content">
                 <div class="success-icon">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <h1>Pagamento Confirmado!</h1>
-                <p class="success-message">Seu pedido foi processado com sucesso. Você receberá seus acessos nos próximos minutos.</p>
-                <div class="order-info" id="order-info">
-                    <!-- Preenchido via JavaScript -->
+                <h1>Assinatura Confirmada!</h1>
+                <p class="success-message">Sua assinatura de proxies foi processada com sucesso. Estamos preparando seus proxies agora mesmo!</p>
+                
+                <div class="order-details">
+                    <h2>Detalhes da Assinatura</h2>
+                    <div class="detail-item">
+                        <span class="detail-label">ID da Sessão:</span>
+                        <span class="detail-value" id="session-id">Carregando...</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Método de Pagamento:</span>
+                        <span class="detail-value">Cartão de Crédito (via Stripe)</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value">Confirmado</span>
+                    </div>
                 </div>
-                <div class="success-actions">
-                    <a href="index.html" class="btn btn-outline">Voltar ao Início</a>
-                    <a href="index.html#contato" class="btn btn-primary">Contato</a>
+                
+                <div class="next-steps">
+                    <h2>Próximos Passos</h2>
+                    <ol>
+                        <li>
+                            <i class="fas fa-envelope"></i>
+                            <div class="step-content">
+                                <strong>Aguarde nosso email</strong>
+                                <p>Você receberá todas as informações sobre seus proxies por email e WhatsApp em até 5 minutos.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fas fa-key"></i>
+                            <div class="step-content">
+                                <strong>Configure seus proxies</strong>
+                                <p>Você receberá instruções detalhadas sobre como configurar seus proxies.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fas fa-headset"></i>
+                            <div class="step-content">
+                                <strong>Suporte 24/7</strong>
+                                <p>Nossa equipe está disponível para ajudar você com qualquer dúvida.</p>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="/#contato" class="btn btn-primary">Falar com o Suporte</a>
+                    <a href="/" class="btn btn-secondary">Voltar para a Página Inicial</a>
                 </div>
             </div>
         </div>
@@ -75,7 +114,7 @@
         <div class="container">
             <div class="footer-content">
                 <h3>tecnologia & segurança em meios de conexão</h3>
-                <a href="index.html#planos" class="btn btn-primary">pedir proxy</a>
+                <a href="/#planos" class="btn btn-primary">pedir proxy</a>
             </div>
             <div class="footer-bottom">
                 <p>&copy; 2024 FastProxy</p>
@@ -92,28 +131,24 @@
         </div>
     </footer>
 
+    <!-- Scripts -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Obter o ID da sessão da URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const sessionId = urlParams.get('session_id');
-            
-            // Exibir informações do pedido se disponíveis
-            const orderInfo = document.getElementById('order-info');
-            if (sessionId) {
-                orderInfo.innerHTML = `
-                    <p>ID do Pedido: <strong>${sessionId}</strong></p>
-                    <p>Você receberá um e-mail com instruções de acesso.</p>
-                    <p>Em caso de dúvidas, entre em <a href="index.html#contato">contato</a> conosco.</p>
-                `;
-            } else {
-                orderInfo.innerHTML = `
-                    <p>Você receberá um e-mail com os detalhes do seu pedido.</p>
-                    <p>Em caso de dúvidas, entre em <a href="index.html#contato">contato</a> conosco.</p>
-                `;
+            // Obter parâmetros da URL
+            function getURLParams() {
+                const params = new URLSearchParams(window.location.search);
+                return Object.fromEntries(params.entries());
             }
             
-            // Menu mobile
+            // Exibir ID da sessão
+            const params = getURLParams();
+            const sessionIdElement = document.getElementById('session-id');
+            
+            if (params.session_id && sessionIdElement) {
+                sessionIdElement.textContent = params.session_id;
+            }
+            
+            // Menu mobile toggle
             const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
             const mobileMenu = document.querySelector('.mobile-menu');
             
@@ -137,5 +172,174 @@
             });
         });
     </script>
+    
+    <style>
+        /* Estilos específicos para a página de sucesso */
+        .success-section {
+            padding: 80px 0;
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+        }
+        
+        .success-content {
+            background-color: #fff;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            padding: 40px;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .success-icon {
+            font-size: 80px;
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+        
+        .success-message {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: #555;
+        }
+        
+        .order-details {
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .order-details h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #444;
+        }
+        
+        .detail-value {
+            color: #666;
+            word-break: break-all;
+        }
+        
+        .next-steps {
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .next-steps h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .next-steps ol {
+            list-style: none;
+            padding: 0;
+            counter-reset: steps;
+        }
+        
+        .next-steps li {
+            counter-increment: steps;
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 25px;
+            position: relative;
+            padding-left: 50px;
+        }
+        
+        .next-steps li:before {
+            content: counter(steps);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 36px;
+            height: 36px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .next-steps i {
+            margin-right: 15px;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-content strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+        
+        .action-buttons {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-secondary {
+            background-color: #f1f1f1;
+            color: #333;
+            padding: 12px 25px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e1e1e1;
+        }
+        
+        @media (max-width: 768px) {
+            .success-section {
+                padding: 40px 0;
+            }
+            
+            .success-content {
+                padding: 25px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .next-steps li {
+                padding-left: 40px;
+            }
+        }
+    </style>
 </body>
 </html> 

@@ -1,11 +1,367 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Função para sanitizar texto para evitar XSS
-    function sanitizeText(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+// Função para aplicar descontos por volume
+function updateVolumeDiscount(numQuantity, totalPrice) {
+    let discountInfo = '';
+    
+    if (numQuantity >= 50) {
+        const discount = 0.15; // 15% de desconto
+        const discountAmount = totalPrice * discount;
+        totalPrice -= discountAmount;
+        discountInfo = `Desconto de 15% aplicado`;
+    } else if (numQuantity >= 20) {
+        const discount = 0.1; // 10% de desconto
+        const discountAmount = totalPrice * discount;
+        totalPrice -= discountAmount;
+        discountInfo = `Desconto de 10% aplicado`;
+    } else if (numQuantity >= 10) {
+        const discount = 0.05; // 5% de desconto
+        const discountAmount = totalPrice * discount;
+        totalPrice -= discountAmount;
+        discountInfo = `Desconto de 5% aplicado`;
     }
     
+    return { totalPrice, discountInfo };
+}
+
+// Definir constantes globais para preços
+const ORIGINAL_PRICE = 39.90;
+const DISCOUNT_PRICE = 14.90;
+const YEARLY_DISCOUNT = 2; // 2 meses grátis no plano anual
+const WHATSAPP_NUMBER = '5500000000000'; // Número de contato WhatsApp (configurável)
+
+// Variáveis globais para controle do estado
+let currentPlanType = 'monthly';
+let quantity = 1;
+
+// Lógica para timer e escassez
+function checkOfferValidity() {
+    // Verificar data do localStorage
+    try {
+        const offerData = JSON.parse(localStorage.getItem('proxyOffer') || '{}');
+        const currentTime = new Date().getTime();
+        
+        // Se não existir data ou a data for inválida, criar nova oferta
+        if (!offerData.endTime || offerData.endTime < currentTime) {
+            // Verificar a última expiração para decidir se é período de oferta ou não
+            if (offerData.lastExpired) {
+                const hoursSinceExpired = (currentTime - offerData.lastExpired) / (1000 * 60 * 60);
+                
+                // Se passaram menos de 24 horas desde a última expiração, manter preço normal
+                if (hoursSinceExpired < 24) {
+                    return false;
+                }
+            }
+            
+            // Criar nova oferta por 5 horas
+            const newEndTime = currentTime + (5 * 60 * 60 * 1000);
+            localStorage.setItem('proxyOffer', JSON.stringify({
+                endTime: newEndTime
+            }));
+            
+            return true;
+        }
+        
+        // Oferta ainda é válida
+        return true;
+    } catch (error) {
+        console.error('Erro ao verificar validade da oferta:', error);
+        return true; // Em caso de erro, mostrar o preço promocional
+    }
+}
+
+// Função para calcular o preço total atual
+function calculateTotalPrice() {
+    // Garantir que a quantidade seja um número válido
+    const numQuantity = parseInt(quantity);
+    if (isNaN(numQuantity) || numQuantity < 1) {
+        return 0;
+    }
+    
+    let totalPrice;
+    
+    if (currentPlanType === 'monthly') {
+        totalPrice = DISCOUNT_PRICE * numQuantity;
+        
+        // Aplicar descontos por volume usando a função existente
+        const result = updateVolumeDiscount(numQuantity, totalPrice);
+        totalPrice = result.totalPrice;
+    } else {
+        // Plano anual
+        const monthsToCharge = 12 - YEARLY_DISCOUNT;
+        totalPrice = DISCOUNT_PRICE * monthsToCharge * numQuantity;
+    }
+    
+    return totalPrice;
+}
+
+// Atualizar exibição de preço base
+function updatePriceDisplay(isOfferActive = true) {
+    const priceMainElement = document.querySelector('.price-main');
+    const pricePeriodElement = document.querySelector('.price-period');
+    if (priceMainElement && pricePeriodElement) {
+        const currentPrice = isOfferActive ? DISCOUNT_PRICE : ORIGINAL_PRICE;
+        if (currentPlanType === 'monthly') {
+            priceMainElement.textContent = `R$ ${currentPrice.toFixed(2).replace('.', ',')}`;
+            pricePeriodElement.textContent = 'por proxy / mês';
+        } else {
+            const yearlyPrice = currentPrice * (12 - YEARLY_DISCOUNT);
+            priceMainElement.textContent = `R$ ${yearlyPrice.toFixed(2).replace('.', ',')}`;
+            pricePeriodElement.textContent = 'por proxy / ano';
+        }
+        // Atualizar badge de desconto
+        const discountBadge = document.querySelector('.discount-percentage');
+        if (discountBadge && isOfferActive) {
+            const discountPercentage = Math.round(((ORIGINAL_PRICE - DISCOUNT_PRICE) / ORIGINAL_PRICE) * 100);
+            discountBadge.textContent = `-${discountPercentage}%`;
+            discountBadge.style.display = 'flex';
+        } else if (discountBadge) {
+            discountBadge.style.display = 'none';
+        }
+    }
+}
+
+// Calcular e atualizar o preço total
+function updateTotalPrice() {
+    const totalAmountElement = document.getElementById('total-amount');
+    const discountInfoElement = document.getElementById('discount-info');
+    if (totalAmountElement) {
+        // Garantir que a quantidade seja um número inteiro válido
+        const numQuantity = parseInt(quantity);
+        if (isNaN(numQuantity) || numQuantity < 1) {
+            console.error('Quantidade inválida:', quantity);
+            return 0;
+        }
+        let totalPrice;
+        let discountInfo = '';
+        if (currentPlanType === 'monthly') {
+            totalPrice = DISCOUNT_PRICE * numQuantity;
+            // Aplicar descontos por volume em planos mensais usando a função existente
+            const result = updateVolumeDiscount(numQuantity, totalPrice);
+            totalPrice = result.totalPrice;
+            discountInfo = result.discountInfo;
+        } else {
+            // Plano anual (12 meses - 2 meses grátis)
+            const monthsToCharge = 12 - YEARLY_DISCOUNT;
+            totalPrice = DISCOUNT_PRICE * monthsToCharge * numQuantity;
+            discountInfo = `${YEARLY_DISCOUNT} meses grátis por ano`;
+        }
+        // Atualizar exibição
+        totalAmountElement.textContent = `R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
+        if (discountInfoElement) {
+            discountInfoElement.textContent = discountInfo;
+        }
+        // Atualizar dados no modal
+        updateModalData(totalPrice);
+        // Atualizar link do WhatsApp
+        updateWhatsAppLink(totalPrice);
+        console.log(`Preço total atualizado: R$ ${totalPrice.toFixed(2).replace('.', ',')} (Qtd: ${numQuantity}, Plano: ${currentPlanType})`);
+        return totalPrice;
+    }
+    return 0;
+}
+
+// Atualizar link do WhatsApp com os detalhes da compra
+function updateWhatsAppLink(totalPrice) {
+    const whatsappButton = document.querySelector('.btn-whatsapp');
+    if (whatsappButton) {
+        // Garantir que a quantidade seja um número válido
+        const numQuantity = parseInt(quantity);
+        if (isNaN(numQuantity) || numQuantity < 1) {
+            console.error('Quantidade inválida para WhatsApp:', quantity);
+            return;
+        }
+        const planName = currentPlanType === 'monthly' ? 'mensal' : 'anual';
+        const message = `Olá, tenho interesse em comprar ${numQuantity} proxy(s) no plano ${planName} por R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
+        const encodedMessage = encodeURIComponent(message);
+        const whatsappURL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+        whatsappButton.href = whatsappURL;
+    }
+}
+
+// Atualizar dados no modal
+function updateModalData(totalPrice) {
+    const modalQuantity = document.getElementById('modal-quantity');
+    const modalPrice = document.getElementById('modal-price');
+    const modalPeriod = document.getElementById('modal-period');
+    const modalTotal = document.getElementById('modal-total');
+    if (!modalQuantity || !modalPrice || !modalPeriod || !modalTotal) {
+        return;
+    }
+    // Garantir que a quantidade seja um número válido
+    const numQuantity = parseInt(quantity);
+    if (isNaN(numQuantity) || numQuantity < 1) {
+        console.error('Quantidade inválida para modal:', quantity);
+        return;
+    }
+    // Atualizar quantidade exibida
+    modalQuantity.textContent = `${numQuantity}x`;
+    // Determinar o preço unitário
+    let unitPrice;
+    if (currentPlanType === 'monthly') {
+        unitPrice = DISCOUNT_PRICE;
+        modalPeriod.textContent = 'Cobrança Mensal';
+    } else {
+        // Calcular preço anual (12 meses - 2 meses grátis)
+        const monthsToCharge = 12 - YEARLY_DISCOUNT;
+        unitPrice = DISCOUNT_PRICE * monthsToCharge;
+        modalPeriod.textContent = 'Cobrança Anual (2 meses grátis)';
+    }
+    // Atualizar preço unitário
+    modalPrice.textContent = `R$ ${unitPrice.toFixed(2).replace('.', ',')}`;
+    // Atualizar preço total
+    modalTotal.textContent = `R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
+    console.log(`Modal atualizado: ${numQuantity}x proxies no plano ${currentPlanType}, total: R$ ${totalPrice.toFixed(2)}`);
+}
+
+function initializePromotionalPrices() {
+    const isActive = checkOfferValidity();
+    
+    // Atualizar elementos de preço original e com desconto
+    const originalPriceElement = document.getElementById('original-price');
+    if (originalPriceElement) {
+        originalPriceElement.textContent = `R$ ${ORIGINAL_PRICE.toFixed(2).replace('.', ',')}`;
+    }
+    
+    // Atualizar preços na calculadora
+    updatePriceDisplay(isActive);
+    updateTotalPrice();
+}
+
+// Função para lidar com o checkout
+async function handleCheckout(paymentMethod = 'card') {
+    try {
+        // Garantir que a quantidade seja um número inteiro válido
+        const numQuantity = parseInt(quantity);
+        if (isNaN(numQuantity) || numQuantity < 1) {
+            throw new Error('Quantidade inválida. Por favor, selecione pelo menos 1 proxy.');
+        }
+
+        // Desabilitar o botão de checkout para evitar cliques múltiplos
+        const checkoutButton = document.getElementById('checkout-button');
+        if (checkoutButton) {
+            checkoutButton.disabled = true;
+            checkoutButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+        }
+        
+        // Fechar o modal se estiver aberto
+        const checkoutModal = document.getElementById('checkout-modal');
+        if (checkoutModal && checkoutModal.style.display === 'flex') {
+            checkoutModal.style.display = 'none';
+        }
+        
+        // Mostrar indicador de carregamento
+        const loadingElement = document.getElementById('loading-indicator');
+        if (loadingElement) {
+            loadingElement.style.display = 'block';
+        }
+        
+        const errorElement = document.getElementById('checkout-error');
+        if (errorElement) {
+            errorElement.style.display = 'none';
+        }
+        
+        // Calcular o preço total
+        const totalPrice = calculateTotalPrice();
+        console.log(`Preço total calculado: ${totalPrice}`);
+        
+        // URL da API para criar assinatura - usando URL relativa para segurança
+        const apiUrl = '/api/create-subscription';
+        
+        // Criar dados do checkout
+        const checkoutData = {
+            quantity: numQuantity,
+            planType: currentPlanType === 'monthly' ? 'monthly' : 'yearly'
+        };
+        
+        console.log('Enviando dados para criação de assinatura:', checkoutData);
+        
+        try {
+            // Fazer a requisição ao servidor
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(checkoutData),
+            });
+            
+            // Verificar se a resposta tem o formato JSON 
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Resposta inválida do servidor - formato não é JSON');
+            }
+            
+            // Esconder indicador de carregamento
+            if (loadingElement) {
+                loadingElement.style.display = 'none';
+            }
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                
+                // Verificar se o erro está relacionado à chave do Stripe
+                if (errorData.details && (
+                    errorData.details.includes('Invalid API Key') || 
+                    errorData.details.includes('SuaChaveSecretaDoStripe')
+                )) {
+                    throw new Error('Chave da API Stripe inválida. Configure uma chave válida no arquivo .env do backend.');
+                }
+                
+                throw new Error(errorData.error || 'Erro ao criar assinatura');
+            }
+            
+            const data = await response.json();
+            console.log('Resposta do servidor:', data);
+            
+            if (data && data.url) {
+                // Mostrar mensagem de redirecionamento
+                if (checkoutButton) {
+                    checkoutButton.innerHTML = '<i class="fas fa-external-link-alt"></i> Redirecionando...';
+                }
+                
+                // Redirecionar para a página de checkout do Stripe
+                console.log('Redirecionando para:', data.url);
+                window.location.href = data.url;
+            } else {
+                throw new Error('URL de checkout não encontrada na resposta');
+            }
+        } catch (error) {
+            console.error('Erro na requisição:', error);
+            
+            // Redirecionar para a página de erro com a mensagem
+            const errorMessage = encodeURIComponent(error.message || 'Erro ao processar pagamento');
+            window.location.href = `/stripe-erro.html?error=${errorMessage}`;
+            
+            throw new Error(`Erro ao processar pagamento: ${error.message}`);
+        }
+    } catch (error) {
+        console.error('Erro no checkout:', error);
+        
+        // Esconder indicador de carregamento em caso de erro
+        const loadingElement = document.getElementById('loading-indicator');
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+        }
+        
+        // Mostrar mensagem de erro
+        const errorElement = document.getElementById('checkout-error');
+        if (errorElement) {
+            errorElement.textContent = error.message || 'Erro ao processar pagamento. Tente novamente.';
+            errorElement.style.display = 'block';
+        } else {
+            // Fallback para alert
+            alert('Erro: ' + error.message);
+        }
+        
+        // Reabilitar o botão de checkout
+        const checkoutButton = document.getElementById('checkout-button');
+        if (checkoutButton) {
+            checkoutButton.disabled = false;
+            checkoutButton.innerHTML = 'Finalizar Compra';
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
     // Menu mobile toggle
     const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
     const mobileMenu = document.querySelector('.mobile-menu');
@@ -55,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Efeito 3D com o movimento do mouse
         heroSection.addEventListener('mousemove', (e) => {
             // Verificar se a animação está desativada
-            if (notebook.style.animation === 'none') {
+            if (notebook && notebook.style.animation === 'none') {
                 const rect = heroSection.getBoundingClientRect();
                 const centerX = rect.width / 2;
                 const centerY = rect.height / 2;
@@ -95,14 +451,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkoutModal = document.getElementById('checkout-modal');
     const closeModal = document.querySelector('.close-modal');
     
-    // Pricing constants
-    const ORIGINAL_PRICE = 39.90;
-    const DISCOUNT_PRICE = 14.90;
-    const YEARLY_DISCOUNT = 2; // 2 meses grátis no plano anual
-    let currentPlanType = 'monthly';
-    
-    // Quantidade inicial
-    let quantity = 1;
+    // Verificar se elementos existem (para evitar erros)
+    if (proxyQuantityInput) {
+        proxyQuantityInput.value = quantity;
+    }
     
     // Verificar se oferta está ativa
     const isOfferActive = checkOfferValidity();
@@ -110,125 +462,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Atualizar preços iniciais
     initializePromotionalPrices();
     
-    // Lógica para timer e escassez
-    function checkOfferValidity() {
-        // Verificar data do localStorage
-        const offerData = JSON.parse(localStorage.getItem('proxyOffer') || '{}');
-        const currentTime = new Date().getTime();
-        
-        // Se não existir data ou a data for inválida, criar nova oferta
-        if (!offerData.endTime || offerData.endTime < currentTime) {
-            // Verificar a última expiração para decidir se é período de oferta ou não
-            if (offerData.lastExpired) {
-                const hoursSinceExpired = (currentTime - offerData.lastExpired) / (1000 * 60 * 60);
-                
-                // Se passaram menos de 24 horas desde a última expiração, manter preço normal
-                if (hoursSinceExpired < 24) {
-                    return false;
-                }
-            }
-            
-            // Criar nova oferta por 5 horas
-            const newEndTime = currentTime + (5 * 60 * 60 * 1000);
-            localStorage.setItem('proxyOffer', JSON.stringify({
-                endTime: newEndTime
-            }));
-            
-            return true;
-        }
-        
-        // Oferta ainda é válida
-        return true;
-    }
-    
-    function updateTimerDisplay() {
-        const timerElement = document.getElementById('offer-timer');
-        if (!timerElement) return;
-        
-        const offerData = JSON.parse(localStorage.getItem('proxyOffer') || '{}');
-        if (!offerData.endTime) return;
-        
-        const currentTime = new Date().getTime();
-        const timeLeft = offerData.endTime - currentTime;
-        
-        if (timeLeft <= 0) {
-            // Oferta expirou
-            timerElement.innerHTML = `<span class="expired">Oferta expirada!</span>`;
-            
-            // Registrar quando expirou
-            localStorage.setItem('proxyOffer', JSON.stringify({
-                lastExpired: currentTime
-            }));
-            
-            // Atualizar preços para valores normais
-            updatePriceDisplay(false);
-            updateTotalPrice();
-            
-            return;
-        }
-        
-        // Calcular horas, minutos e segundos restantes
-        const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-        
-        // Atualizar timer
-        timerElement.innerHTML = `
-            <div class="timer-unit">
-                <span class="timer-number">${hours.toString().padStart(2, '0')}</span>
-                <span class="timer-label">horas</span>
-            </div>
-            <div class="timer-separator">:</div>
-            <div class="timer-unit">
-                <span class="timer-number">${minutes.toString().padStart(2, '0')}</span>
-                <span class="timer-label">min</span>
-            </div>
-            <div class="timer-separator">:</div>
-            <div class="timer-unit">
-                <span class="timer-number">${seconds.toString().padStart(2, '0')}</span>
-                <span class="timer-label">seg</span>
-            </div>
-        `;
-    }
-    
-    // Iniciar o timer e atualizá-lo a cada segundo
-    updateTimerDisplay();
-    setInterval(updateTimerDisplay, 1000);
-    
-    function initializePromotionalPrices() {
-        const isActive = checkOfferValidity();
-        
-        // Atualizar elementos de preço original e com desconto
-        const originalPriceElement = document.getElementById('original-price');
-        if (originalPriceElement) {
-            originalPriceElement.textContent = `R$ ${ORIGINAL_PRICE.toFixed(2).replace('.', ',')}`;
-        }
-        
-        // Atualizar preços na calculadora
-        updatePriceDisplay(isActive);
-        updateTotalPrice();
-    }
-    
-    // Atualizar quantidade com os botões + e -
-    if (decreaseBtn && increaseBtn && proxyQuantityInput) {
-        decreaseBtn.addEventListener('click', () => {
-            if (quantity > 1) {
-                quantity--;
-                proxyQuantityInput.value = quantity;
-                updateTotalPrice();
-            }
-        });
-        
-        increaseBtn.addEventListener('click', () => {
-            if (quantity < 100) {
-                quantity++;
-                proxyQuantityInput.value = quantity;
-                updateTotalPrice();
-            }
-        });
-        
-        // Atualizar quando o input for alterado diretamente
-        proxyQuantityInput.addEventListener('input', () => {
+    // Atualizar quando o input for alterado diretamente
+    if (proxyQuantityInput) {
+        proxyQuantityInput.addEventListener('input', function() {
             const newValue = parseInt(proxyQuantityInput.value) || 0;
             if (newValue >= 1 && newValue <= 100) {
                 quantity = newValue;
@@ -240,6 +476,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 proxyQuantityInput.value = 100;
             }
             updateTotalPrice();
+        });
+    }
+    
+    // Atualizar quantidade com os botões + e -
+    if (decreaseBtn && increaseBtn && proxyQuantityInput) {
+        // Botão de diminuir quantidade
+        decreaseBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            if (quantity > 1) {
+                quantity--;
+                proxyQuantityInput.value = quantity;
+                updateTotalPrice();
+                console.log('Quantidade diminuída para:', quantity);
+            }
+        });
+        
+        // Botão de aumentar quantidade
+        increaseBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            if (quantity < 100) {
+                quantity++;
+                proxyQuantityInput.value = quantity;
+                updateTotalPrice();
+                console.log('Quantidade aumentada para:', quantity);
+            }
         });
     }
     
@@ -263,123 +524,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Atualizar exibição de preço base
-    function updatePriceDisplay(isOfferActive = true) {
-        if (priceMainElement && pricePeriodElement) {
-            const currentPrice = isOfferActive ? DISCOUNT_PRICE : ORIGINAL_PRICE;
+    // Botão de checkout (para modal)
+    if (checkoutButton) {
+        checkoutButton.addEventListener('click', function(e) {
+            e.preventDefault();
             
-            if (currentPlanType === 'monthly') {
-                priceMainElement.textContent = `R$ ${currentPrice.toFixed(2).replace('.', ',')}`;
-                pricePeriodElement.textContent = 'por proxy / mês';
-            } else {
-                const yearlyPrice = currentPrice * (12 - YEARLY_DISCOUNT);
-                priceMainElement.textContent = `R$ ${yearlyPrice.toFixed(2).replace('.', ',')}`;
-                pricePeriodElement.textContent = 'por proxy / ano';
-            }
-            
-            // Atualizar badge de desconto
-            const discountBadge = document.querySelector('.discount-percentage');
-            if (discountBadge && isOfferActive) {
-                const discountPercentage = Math.round(((ORIGINAL_PRICE - DISCOUNT_PRICE) / ORIGINAL_PRICE) * 100);
-                discountBadge.textContent = `-${discountPercentage}%`;
-                discountBadge.style.display = 'flex';
-            } else if (discountBadge) {
-                discountBadge.style.display = 'none';
-            }
-        }
-    }
-    
-    // Calcular e atualizar o preço total
-    function updateTotalPrice() {
-        if (!proxyQuantityInput || !totalAmountElement) return;
-        
-        // Garantir que quantidade é um número válido
-        quantity = parseInt(proxyQuantityInput.value) || 1;
-        
-        // Limitar quantidade a valores razoáveis
-        if (quantity < 1) quantity = 1;
-        if (quantity > 100) quantity = 100;
-        
-        // Atualizar o valor no input
-        proxyQuantityInput.value = quantity;
-        
-        // Calcular preço total
-        const totalPrice = calculateTotalPrice();
-        
-        // Atualizar elemento com o total sanitizado
-        totalAmountElement.textContent = sanitizeText(`R$ ${totalPrice.toFixed(2).replace('.', ',')}`);
-        
-        // Verificar se há desconto por volume
-        updateVolumeDiscount(quantity);
-        
-        // Atualizar link do WhatsApp com o preço total
-        updateWhatsAppLink(totalPrice);
-        
-        // Atualizar dados do modal
-        updateModalData(totalPrice);
-    }
-    
-    // Função segura para obter parâmetros da URL
-    function getUrlParam(param) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return sanitizeText(urlParams.get(param) || '');
-    }
-    
-    // Função para adicionar proteção ao WhatsApp 
-    function updateWhatsAppLink(totalPrice) {
-        const whatsappBtn = document.getElementById('whatsapp-checkout');
-        if (!whatsappBtn) return;
-        
-        const mensagem = `Olá! Gostaria de adquirir ${quantity} ${quantity === 1 ? 'proxy' : 'proxies'} no plano ${currentPlanType === 'monthly' ? 'mensal' : 'anual'} por R$ ${totalPrice.toFixed(2).replace('.', ',')}.`;
-        
-        // Criação segura de URL
-        const encodedMessage = encodeURIComponent(mensagem);
-        whatsappBtn.href = `https://wa.me/5511999999999?text=${encodedMessage}`;
-    }
-    
-    // Atualizar dados no modal
-    function updateModalData(totalPrice) {
-        const modalQuantity = document.getElementById('modal-quantity');
-        const modalPrice = document.getElementById('modal-price');
-        const modalTotal = document.getElementById('modal-total');
-        const modalPeriod = document.getElementById('modal-period');
-        
-        if (modalQuantity && modalPrice && modalTotal && modalPeriod) {
-            modalQuantity.textContent = `${quantity}x`;
-            
-            if (currentPlanType === 'monthly') {
-                const pricePerUnit = totalPrice / quantity;
-                modalPrice.textContent = `R$ ${pricePerUnit.toFixed(2).replace('.', ',')}`;
-                modalPeriod.textContent = 'Cobrança Mensal';
-            } else {
-                const monthsToCharge = 12 - YEARLY_DISCOUNT;
-                const pricePerUnit = (DISCOUNT_PRICE * monthsToCharge);
-                modalPrice.textContent = `R$ ${pricePerUnit.toFixed(2).replace('.', ',')}`;
-                modalPeriod.textContent = 'Cobrança Anual';
-            }
-            
-            modalTotal.textContent = `R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
-        }
-    }
-    
-    // Checkout modal
-    if (checkoutButton && checkoutModal && closeModal) {
-        // Abrir modal
-        checkoutButton.addEventListener('click', () => {
-            // Inicializar o checkout direto com o Stripe
-            handleCheckout();
+            // Iniciar checkout direto com o Stripe
+            handleCheckout('card');
         });
-        
-        // Fechar modal
-        closeModal.addEventListener('click', () => {
+    }
+    
+    // Fechar modal ao clicar no X
+    const closeModalBtn = document.querySelector('.close-modal');
+    if (closeModalBtn && checkoutModal) {
+        closeModalBtn.addEventListener('click', function() {
             checkoutModal.style.display = 'none';
         });
-        
-        // Fechar modal ao clicar fora
-        window.addEventListener('click', (e) => {
-            if (e.target === checkoutModal) {
-                checkoutModal.style.display = 'none';
-            }
+    }
+    
+    // Fechar modal ao clicar fora dele
+    window.addEventListener('click', function(e) {
+        if (checkoutModal && e.target === checkoutModal) {
+            checkoutModal.style.display = 'none';
+        }
+    });
+    
+    // Botão de pagamento com cartão no modal
+    const stripePaymentBtn = document.getElementById('stripe-payment');
+    if (stripePaymentBtn) {
+        stripePaymentBtn.addEventListener('click', function() {
+            handleCheckout('card');
         });
     }
     
@@ -404,106 +578,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 const planName = currentPlanType === 'monthly' ? 'mensal' : 'anual';
                 const totalPrice = calculateTotalPrice();
-                const message = `Olá, gostaria de comprar ${quantity} proxy(s) no plano ${planName} por R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
+                
+                // Garantir que a quantidade seja um número válido
+                const numQuantity = parseInt(quantity);
+                if (isNaN(numQuantity) || numQuantity < 1) {
+                    console.error('Quantidade inválida para WhatsApp:', quantity);
+                    return;
+                }
+                
+                const message = `Olá, gostaria de comprar ${numQuantity} proxy(s) no plano ${planName} por R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
                 const encodedMessage = encodeURIComponent(message);
                 window.location.href = `https://wa.me/5511999999999?text=${encodedMessage}`;
             });
-        }
-    }
-    
-    // Função para calcular o preço total atual
-    function calculateTotalPrice() {
-        let totalPrice;
-        
-        if (currentPlanType === 'monthly') {
-            totalPrice = DISCOUNT_PRICE * quantity;
-            
-            // Aplicar descontos por volume
-            if (quantity >= 10) {
-                totalPrice *= 0.9; // 10% de desconto
-            } else if (quantity >= 5) {
-                totalPrice *= 0.95; // 5% de desconto
-            }
-        } else {
-            // Plano anual
-            const monthsToCharge = 12 - YEARLY_DISCOUNT;
-            totalPrice = DISCOUNT_PRICE * monthsToCharge * quantity;
-        }
-        
-        return totalPrice;
-    }
-    
-    // Função para lidar com o checkout
-    async function handleCheckout(paymentMethod = 'card') {
-        try {
-            // Desativar botão durante processamento
-            if (checkoutButton) {
-                checkoutButton.disabled = true;
-                checkoutButton.textContent = 'Processando...';
-            }
-            
-            const quantity = parseInt(proxyQuantityInput.value) || 1;
-            // Adicionar validação extra de quantidade
-            if (quantity < 1 || quantity > 100) {
-                throw new Error('Quantidade inválida. Escolha de 1 a 100 proxies.');
-            }
-            
-            const planType = currentPlanType;
-            // Validar planType
-            if (planType !== 'monthly' && planType !== 'yearly') {
-                throw new Error('Tipo de plano inválido.');
-            }
-            
-            if (paymentMethod === 'card') {
-                // Obter chave pública do Stripe do servidor
-                const response = await fetch('/stripe-key');
-                if (!response.ok) {
-                    throw new Error('Erro ao obter chave do Stripe.');
-                }
-                
-                const { publicKey } = await response.json();
-                
-                // Criar sessão de checkout
-                const checkoutResponse = await fetch('/create-checkout-session', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        quantity,
-                        planType,
-                        // Adicionar token CSRF aqui se implementado
-                    }),
-                });
-                
-                if (!checkoutResponse.ok) {
-                    throw new Error('Erro ao criar sessão de checkout.');
-                }
-                
-                const { sessionId } = await checkoutResponse.json();
-                
-                // Redirecionar para checkout do Stripe
-                const stripe = Stripe(publicKey);
-                const { error } = await stripe.redirectToCheckout({ sessionId });
-                
-                if (error) {
-                    throw new Error(error.message);
-                }
-            } else if (paymentMethod === 'pix' || paymentMethod === 'boleto') {
-                // Para métodos alternativos, abrir modal com instruções
-                if (checkoutModal) {
-                    checkoutModal.classList.add('active');
-                }
-            }
-        } catch (error) {
-            console.error('Erro no checkout:', error);
-            alert(`Erro: ${error.message || 'Ocorreu um erro no processamento do pagamento.'}`);
-        } finally {
-            // Reativar botão
-            if (checkoutButton) {
-                checkoutButton.disabled = false;
-                checkoutButton.textContent = 'Assinar Agora';
-            }
         }
     }
     
@@ -511,64 +597,52 @@ document.addEventListener('DOMContentLoaded', function() {
     updatePriceDisplay();
     updateTotalPrice();
     
-    // Chamada inicial para atualizar o link do WhatsApp
-    const initialTotalPrice = currentPlanType === 'monthly' ? DISCOUNT_PRICE : DISCOUNT_PRICE * (12 - YEARLY_DISCOUNT);
-    updateWhatsAppLink(initialTotalPrice);
+    // Função para configurar redirecionamento de login
+    setupLoginRedirect();
     
-    // Alternar entre planos (mensal, anual, ipv6)
-    const planTypeBtns = document.querySelectorAll('.plan-type-btn');
-    const pricingContainers = document.querySelectorAll('.pricing-container');
+    // Adicionar novas inicializações
+    setupVideoPlayer();
+    setupFAQ();
     
-    planTypeBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const planType = btn.getAttribute('data-plan-type');
-            
-            // Atualizar botões
-            planTypeBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            // Atualizar containers de preço
-            pricingContainers.forEach(container => {
-                container.classList.remove('active');
-            });
-            
-            const targetContainer = document.querySelector(`.${planType}-plans`);
-            if (targetContainer) {
-                targetContainer.classList.add('active');
+    // Lógica para recuperar parâmetros da URL e configurar checkout
+    function getURLParams() {
+        const urlParams = {};
+        // Sanitizar os parâmetros da URL antes de utilizá-los
+        const sanitizeParam = (param) => {
+            // Remover caracteres potencialmente perigosos
+            if (typeof param === 'string') {
+                return param
+                    .replace(/[^\w\s.,;:+-]/gi, '') // Permitir apenas caracteres seguros
+                    .trim();
             }
-        });
-    });
-    
-    // Scroll suave para links de âncora
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            e.preventDefault();
+            return '';
+        };
+        
+        // Obter parâmetros de forma segura
+        try {
+            const queryString = window.location.search;
+            const searchParams = new URLSearchParams(queryString);
             
-            if (this.getAttribute('href') === '#') return;
-            
-            const targetId = this.getAttribute('href');
-            const targetElement = document.querySelector(targetId);
-            
-            if (targetElement) {
-                window.scrollTo({
-                    top: targetElement.offsetTop - 80,
-                    behavior: 'smooth'
-                });
+            // Processar parâmetros de forma segura
+            for (const [key, value] of searchParams.entries()) {
+                urlParams[key] = sanitizeParam(value);
             }
-        });
-    });
+        } catch (error) {
+            console.error('Erro ao processar parâmetros da URL:', error);
+        }
+        
+        return urlParams;
+    }
     
-    // Botão de voltar ao topo
-    const scrollTopBtn = document.querySelector('.scroll-top');
-    
-    if (scrollTopBtn) {
-        scrollTopBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        });
+    // Verificar parâmetros da URL ao carregar a página
+    const urlParams = getURLParams();
+    if (urlParams && urlParams.session_id) {
+        const sessionId = urlParams.session_id;
+        // Verificar se o sessionId parece válido antes de usá-lo
+        if (/^cs_[a-zA-Z0-9_]+$/.test(sessionId)) {
+            // Processar o ID da sessão do Stripe
+            console.log('Checkout concluído, session ID:', sessionId);
+        }
     }
     
     // Definição da função animateOnScroll
@@ -590,46 +664,174 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Iniciar animação ao carregar a página
     animateOnScroll();
-    
-    // Função para configurar redirecionamento de login
-    setupLoginRedirect();
-    
-    // Adicionar novas inicializações
-    setupVideoPlayer();
-    setupFAQ();
 });
 
-const addReflectionEffect = () => {
-    const notebook = document.querySelector('.hero-image img');
-    const heroImage = document.querySelector('.hero-image');
+// Função para adicionar efeito de reflexo nos elementos
+function addReflectionEffect() {
+    const videoContainer = document.querySelector('.video-container');
+    const videoReflection = document.querySelector('.video-reflection');
     
-    if (notebook && heroImage) {
-        // Criar o elemento de reflexão se não existir
-        let reflection = heroImage.querySelector('.notebook-reflection');
-        
-        if (!reflection) {
-            reflection = document.createElement('div');
-            reflection.classList.add('notebook-reflection');
-            heroImage.appendChild(reflection);
-        }
-        
-        // Definir tamanho e posição inicial
-        reflection.style.width = notebook.offsetWidth * 0.8 + 'px';
-        reflection.style.height = notebook.offsetHeight * 0.6 + 'px';
-        
-        // Atualizar reflexo quando a imagem muda
-        notebook.addEventListener('load', () => {
-            reflection.style.width = notebook.offsetWidth * 0.8 + 'px';
-            reflection.style.height = notebook.offsetHeight * 0.6 + 'px';
+    if (videoContainer && videoReflection) {
+        // Clonar o conteúdo para o reflexo
+        const observer = new MutationObserver(() => {
+            // Atualizar o reflexo com base no conteúdo atual
+            videoReflection.style.backgroundImage = `linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent), url('${getComputedStyle(videoContainer).backgroundImage}')`;
         });
         
-        // Atualizar tamanho do reflexo durante o redimensionamento
-        window.addEventListener('resize', () => {
-            reflection.style.width = notebook.offsetWidth * 0.8 + 'px';
-            reflection.style.height = notebook.offsetHeight * 0.6 + 'px';
+        // Observar mudanças no container do vídeo
+        observer.observe(videoContainer, { attributes: true, childList: true, subtree: true });
+    }
+}
+
+// Configura o player de vídeo na seção hero
+function setupVideoPlayer() {
+    const heroVideo = document.getElementById('hero-video');
+    const playBtn = document.getElementById('play-video');
+    const videoOverlay = document.querySelector('.video-overlay');
+    
+    if (heroVideo && playBtn && videoOverlay) {
+        playBtn.addEventListener('click', function() {
+            // Reproduzir vídeo
+            heroVideo.src += '&autoplay=1';
+            
+            // Esconder o overlay após clicar no play
+            videoOverlay.style.opacity = '0';
+            setTimeout(() => {
+                videoOverlay.style.display = 'none';
+            }, 500);
         });
     }
-}; 
+}
+
+// Configura a interatividade da seção de FAQ
+function setupFAQ() {
+    const faqItems = document.querySelectorAll('.faq-item');
+    
+    faqItems.forEach(item => {
+        const question = item.querySelector('.faq-question');
+        const answer = item.querySelector('.faq-answer');
+        const icon = item.querySelector('.faq-icon i');
+        
+        if (question && answer && icon) {
+            question.addEventListener('click', () => {
+                // Verificar se este item já está aberto
+                const isOpen = item.classList.contains('active');
+                
+                // Fechar todos os itens
+                faqItems.forEach(otherItem => {
+                    otherItem.classList.remove('active');
+                    const otherAnswer = otherItem.querySelector('.faq-answer');
+                    const otherIcon = otherItem.querySelector('.faq-icon i');
+                    
+                    if (otherAnswer && otherIcon) {
+                        otherAnswer.style.maxHeight = null;
+                        otherIcon.className = 'fas fa-chevron-down';
+                    }
+                });
+                
+                // Se o item clicado não estava aberto, abri-lo
+                if (!isOpen) {
+                    item.classList.add('active');
+                    answer.style.maxHeight = answer.scrollHeight + 'px';
+                    icon.className = 'fas fa-chevron-up';
+                }
+            });
+        }
+    });
+}
+
+function updateTimerDisplay() {
+    const timerElement = document.getElementById('offer-timer');
+    if (!timerElement) return;
+    
+    try {
+        const offerData = JSON.parse(localStorage.getItem('proxyOffer') || '{}');
+        if (!offerData.endTime) return;
+        
+        const currentTime = new Date().getTime();
+        const timeLeft = offerData.endTime - currentTime;
+        
+        if (timeLeft <= 0) {
+            // Oferta expirou
+            timerElement.textContent = '';
+            const expiredSpan = document.createElement('span');
+            expiredSpan.className = 'expired';
+            expiredSpan.textContent = 'Oferta expirada!';
+            timerElement.appendChild(expiredSpan);
+            
+            // Registrar quando expirou
+            localStorage.setItem('proxyOffer', JSON.stringify({
+                lastExpired: currentTime
+            }));
+            
+            // Atualizar preços para valores normais
+            updatePriceDisplay(false);
+            updateTotalPrice();
+            
+            return;
+        }
+        
+        // Calcular horas, minutos e segundos restantes
+        const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+        
+        // Limpar conteúdo anterior
+        timerElement.innerHTML = '';
+        
+        // Criar e adicionar os elementos com segurança
+        const createTimerUnit = (value, label) => {
+            const unitDiv = document.createElement('div');
+            unitDiv.className = 'timer-unit';
+            
+            const numberSpan = document.createElement('span');
+            numberSpan.className = 'timer-number';
+            numberSpan.textContent = value.toString().padStart(2, '0');
+            
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'timer-label';
+            labelSpan.textContent = label;
+            
+            unitDiv.appendChild(numberSpan);
+            unitDiv.appendChild(labelSpan);
+            
+            return unitDiv;
+        };
+        
+        const createSeparator = () => {
+            const separator = document.createElement('div');
+            separator.className = 'timer-separator';
+            separator.textContent = ':';
+            return separator;
+        };
+        
+        // Adicionar unidades e separadores ao timer
+        timerElement.appendChild(createTimerUnit(hours, 'horas'));
+        timerElement.appendChild(createSeparator());
+        timerElement.appendChild(createTimerUnit(minutes, 'min'));
+        timerElement.appendChild(createSeparator());
+        timerElement.appendChild(createTimerUnit(seconds, 'seg'));
+    } catch (error) {
+        console.error('Erro ao atualizar timer:', error);
+    }
+}
+
+// Iniciar o timer e atualizá-lo a cada segundo
+updateTimerDisplay();
+setInterval(updateTimerDisplay, 1000);
+
+// Função para configurar redirecionamento de login
+function setupLoginRedirect() {
+    // Corrigir o seletor inválido
+    const loginButtons = document.querySelectorAll('a[href="/login"], a[href="/acessar"]');
+    
+    loginButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = 'http://localhost:3000/maintenance.html';
+        });
+    });
+}
 
 // Carregar GSAP através de CDN
 const loadGSAP = () => {
@@ -773,114 +975,4 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
   
   // ... existing code ...
-});
-
-// Função para configurar redirecionamento de login
-function setupLoginRedirect() {
-    // Corrigir o seletor inválido
-    const loginButtons = document.querySelectorAll('a[href="/login"], a[href="/acessar"]');
-    
-    loginButtons.forEach(button => {
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.location.href = 'http://localhost:3000/maintenance.html';
-        });
-    });
-}
-
-// Função para configurar o vídeo
-const setupVideoPlayer = () => {
-    const videoContainer = document.querySelector('.video-container');
-    const video = document.getElementById('hero-video');
-    const playBtn = document.getElementById('play-video');
-    const videoOverlay = document.querySelector('.video-overlay');
-    
-    if (videoContainer && video && playBtn && videoOverlay) {
-        // Iniciar vídeo quando clicar no botão de play
-        playBtn.addEventListener('click', () => {
-            video.play();
-            videoOverlay.style.opacity = 0;
-            
-            // Após um pequeno delay, esconder completamente o overlay
-            setTimeout(() => {
-                videoOverlay.style.display = 'none';
-            }, 300);
-        });
-        
-        // Quando o vídeo terminar, mostrar novamente o overlay
-        video.addEventListener('ended', () => {
-            videoOverlay.style.display = 'flex';
-            setTimeout(() => {
-                videoOverlay.style.opacity = 1;
-            }, 10);
-        });
-        
-        // Se o vídeo for pausado, mostrar o overlay
-        video.addEventListener('pause', () => {
-            if (!video.ended) {
-                videoOverlay.style.display = 'flex';
-                setTimeout(() => {
-                    videoOverlay.style.opacity = 1;
-                }, 10);
-            }
-        });
-        
-        // Aplicar os mesmos efeitos 3D do notebook no vídeo
-        if (heroSection) {
-            // Mesmos eventos que tínhamos para a imagem do notebook
-            heroSection.addEventListener('mouseenter', () => {
-                videoContainer.style.animation = 'none';
-            });
-            
-            heroSection.addEventListener('mouseleave', () => {
-                videoContainer.style.animation = 'notebook-float 6s ease-in-out infinite';
-                videoContainer.style.transform = 'rotateY(0deg) rotateX(0deg)';
-            });
-            
-            heroSection.addEventListener('mousemove', (e) => {
-                if (videoContainer.style.animation === 'none') {
-                    const rect = heroSection.getBoundingClientRect();
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    
-                    const mouseX = e.clientX - rect.left;
-                    const mouseY = e.clientY - rect.top;
-                    
-                    const rotateY = ((mouseX - centerX) / centerX) * 8;
-                    const rotateX = ((centerY - mouseY) / centerY) * 5;
-                    
-                    videoContainer.style.transform = `rotateY(${rotateY}deg) rotateX(${rotateX}deg)`;
-                }
-            });
-        }
-    }
-};
-
-// Função para configurar o accordion da seção FAQ
-const setupFAQ = () => {
-    const faqItems = document.querySelectorAll('.faq-item');
-    
-    if (faqItems.length) {
-        faqItems.forEach(item => {
-            const question = item.querySelector('.faq-question');
-            
-            question.addEventListener('click', () => {
-                // Verificar se este item já está ativo
-                const isActive = item.classList.contains('active');
-                
-                // Fechar todos os itens ativos
-                faqItems.forEach(faqItem => {
-                    faqItem.classList.remove('active');
-                });
-                
-                // Se este item não estava ativo, abri-lo
-                if (!isActive) {
-                    item.classList.add('active');
-                }
-            });
-        });
-        
-        // Abrir primeiro item por padrão
-        faqItems[0].classList.add('active');
-    }
-}; 
+}); 

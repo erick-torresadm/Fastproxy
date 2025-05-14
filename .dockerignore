@@ -1,0 +1,37 @@
+# Arquivos de controle de versão
+.git
+.gitignore
+.github
+
+# Dependências
+node_modules
+*/node_modules
+
+# Arquivos temporários
+temp.*
+*.temp
+*.tmp
+.DS_Store
+*.log
+logs/*
+
+# Arquivos de desenvolvimento
+*.md
+!README.md
+!DEPLOY.md
+.vscode
+*.bak
+
+# Arquivos de teste
+*test.js
+security-test.js
+
+# Arquivos desnecessários para produção
+.cspell.json
+.cspell.json.bak
+clean-env.js
+security-check.js
+start-with-env.js
+start-server.js
+setup.js
+env_setup.js 

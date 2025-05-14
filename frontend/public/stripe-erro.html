@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com; connect-src 'self' http://localhost:8080 http://localhost:8081 https://api.stripe.com https://*.stripe.com; frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://*.stripe.com https://www.youtube.com https://youtube.com; img-src 'self' data: https://stripe.com https://*.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;">
+    <title>Erro no Pagamento - FastProxy</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Estilos específicos para a página de erro */
+        .error-section {
+            padding: 80px 0;
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+        }
+        
+        .error-content {
+            background-color: #fff;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            padding: 40px;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .error-icon {
+            font-size: 80px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+        
+        .error-message {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: #555;
+        }
+        
+        .error-details {
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .error-details h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .error-reasons {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .error-reasons li {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .error-reasons li:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .error-reasons i {
+            font-size: 1.5rem;
+            color: #e74c3c;
+            margin-right: 15px;
+            min-width: 25px;
+        }
+        
+        .reason-content {
+            flex: 1;
+        }
+        
+        .reason-content strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+        
+        .reason-content p {
+            margin: 0;
+            color: #666;
+        }
+        
+        .alternative-payment {
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .alternative-payment h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .action-buttons {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-whatsapp {
+            background-color: #25D366;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .btn-whatsapp i {
+            margin-right: 8px;
+        }
+        
+        .btn-whatsapp:hover {
+            background-color: #128C7E;
+            transform: translateY(-3px);
+        }
+
+        /* Estilos para o loading spinner */
+        #loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            border: 5px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 5px solid #3498db;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.2rem;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .loading-subtext {
+            font-size: 0.9rem;
+            color: #888;
+        }
+        
+        @media (max-width: 768px) {
+            .error-section {
+                padding: 40px 0;
+            }
+            
+            .error-content {
+                padding: 25px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="/"><img src="images/LOGO FAST PROXY.png" alt="FastProxy Logo"></a>
+            </div>
+            <nav class="desktop-nav">
+                <ul>
+                    <li><a href="/">início</a></li>
+                    <li><a href="/#planos">planos</a></li>
+                    <li><a href="/#contato">contato</a></li>
+                    <li><a href="/#tutorial">tutorial</a></li>
+                </ul>
+            </nav>
+            <div class="header-buttons">
+                <a href="/#contato" class="btn btn-primary">Fale conosco</a>
+            </div>
+            <div class="mobile-menu-btn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu">
+        <ul>
+            <li><a href="/">início</a></li>
+            <li><a href="/#planos">planos</a></li>
+            <li><a href="/#contato">contato</a></li>
+            <li><a href="/#tutorial">tutorial</a></li>
+        </ul>
+        <div class="mobile-buttons">
+            <a href="/#contato" class="btn btn-primary">Fale conosco</a>
+        </div>
+    </div>
+
+    <!-- Error Section -->
+    <section class="error-section">
+        <div class="container">
+            <!-- Loading Container - Exibido inicialmente -->
+            <div id="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Processando seu pagamento...</div>
+                <div class="loading-subtext">Por favor, aguarde enquanto verificamos com o processador de pagamento.</div>
+            </div>
+
+            <!-- Error Content - Inicialmente oculto, será mostrado após 10 segundos -->
+            <div class="error-content" style="display: none;">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <h1>Ops! Ocorreu um erro no pagamento</h1>
+                <p class="error-message" id="error-message">Não foi possível processar seu pagamento no momento. Por favor, tente novamente ou escolha outra forma de pagamento.</p>
+                
+                <div class="error-details">
+                    <h2>O que pode ter acontecido?</h2>
+                    <ul class="error-reasons">
+                        <li>
+                            <i class="fas fa-credit-card"></i>
+                            <div class="reason-content">
+                                <strong>Problema com o cartão</strong>
+                                <p>Seu cartão pode ter sido recusado ou possui fundos insuficientes.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fas fa-wifi"></i>
+                            <div class="reason-content">
+                                <strong>Problemas de conexão</strong>
+                                <p>Sua conexão com a internet pode ter falhado durante o processamento.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fas fa-server"></i>
+                            <div class="reason-content">
+                                <strong>Erro temporário</strong>
+                                <p>Nosso servidor de pagamentos pode estar enfrentando instabilidade temporária.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="alternative-payment">
+                    <h2>Alternativas para continuar sua compra</h2>
+                    <p>Você pode tentar novamente ou entrar em contato conosco pelo WhatsApp para finalizar sua compra de forma personalizada.</p>
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="/#planos" class="btn btn-primary">Tentar Novamente</a>
+                    <a href="https://wa.me/5511999999999?text=Olá,%20tive%20um%20problema%20no%20checkout%20e%20gostaria%20de%20finalizar%20minha%20compra%20de%20proxies" class="btn btn-whatsapp">
+                        <i class="fab fa-whatsapp"></i> Comprar pelo WhatsApp
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <h3>tecnologia & segurança em meios de conexão</h3>
+                <a href="/#planos" class="btn btn-primary">pedir proxy</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 FastProxy</p>
+                <div class="social-media">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+                <a href="#" class="scroll-top">
+                    rolar para cima <i class="fas fa-arrow-up"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+    <script src="js/stripe-erro.js"></script>
+</body>
+</html> 

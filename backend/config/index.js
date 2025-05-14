@@ -29,12 +29,17 @@ if (!fs.existsSync(envFile) && !fs.existsSync(envProdFile)) {
 
 // Carregar arquivo .env apropriado baseado no ambiente
 if (env === 'production') {
-  // Em produção, usar .env.production
-  const result = dotenv.config({ path: envProdFile });
-  if (result.error) {
-    console.error('Erro ao carregar .env.production:', result.error);
-    // Tentar o .env padrão como fallback
-    dotenv.config({ path: envFile });
+  // Em produção, tentar carregar .env.production, mas não falhar se não existir
+  try {
+    const result = dotenv.config({ path: envProdFile });
+    if (result.error) {
+      console.error('Erro ao carregar .env.production:', result.error);
+      // Tentar o .env padrão como fallback
+      dotenv.config({ path: envFile });
+    }
+  } catch (error) {
+    // Ignorar erro se o arquivo não existir, pois as variáveis podem vir do docker-compose
+    console.log('Arquivo .env.production não encontrado, usando variáveis de ambiente do sistema');
   }
 } else {
   // Em outros ambientes (desenvolvimento, teste), usar .env
@@ -82,7 +87,7 @@ const config = {
   
   // Configurações do servidor
   port: parseInt(process.env.PORT || '8080', 10),
-  alternativePorts: [8081, 8082, 3001, 3002],
+  alternativePorts: [8081, 8082, 8083, 3000, 3001],
   
   // Configurações do Stripe
   stripe: {
