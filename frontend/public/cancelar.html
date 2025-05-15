@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com; connect-src 'self' http://localhost:8080 http://localhost:8081 https://api.stripe.com https://*.stripe.com; frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://*.stripe.com https://www.youtube.com https://youtube.com; img-src 'self' data: https://stripe.com https://*.stripe.com https://i.giphy.com https://giphy.com https://*.giphy.com https://media.giphy.com https://*.media.giphy.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;">
+    <title>Cancelamento - FastProxy</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="index.html"><img src="images/LOGO FAST PROXY.png" alt="FastProxy Logo"></a>
+            </div>
+            <nav class="desktop-nav">
+                <ul>
+                    <li><a href="index.html">início</a></li>
+                    <li><a href="index.html#planos">planos</a></li>
+                    <li><a href="index.html#contato">contato</a></li>
+                    <li><a href="#">tutorial</a></li>
+                    <li><a href="cancelar.html" class="active">cancelamento</a></li>
+                </ul>
+            </nav>
+            <div class="header-buttons">
+                <a href="index.html#contato" class="btn btn-primary">Fale conosco</a>
+            </div>
+            <div class="mobile-menu-btn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu">
+        <ul>
+            <li><a href="index.html">início</a></li>
+            <li><a href="index.html#planos">planos</a></li>
+            <li><a href="index.html#contato">contato</a></li>
+            <li><a href="#">tutorial</a></li>
+            <li><a href="cancelar.html" class="active">cancelamento</a></li>
+        </ul>
+        <div class="mobile-buttons">
+            <a href="index.html#contato" class="btn btn-primary">Fale conosco</a>
+        </div>
+    </div>
+
+    <!-- Cancelamento Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1>Cancelamento de Serviço</h1>
+            <p>Solicite o cancelamento do seu serviço de proxy de forma simples e rápida</p>
+        </div>
+    </section>
+
+    <!-- Cancelamento Content -->
+    <section class="cancelamento-content">
+        <div class="container">
+            <div class="section-header">
+                <h2>como cancelar seu serviço</h2>
+                <p>escolha a opção que seja mais conveniente para você</p>
+            </div>
+
+            <div class="cancelamento-options">
+                <div class="cancelamento-card">
+                    <div class="cancelamento-icon">
+                        <i class="fas fa-headset"></i>
+                    </div>
+                    <h3>contato com suporte</h3>
+                    <p>Entre em contato diretamente com nossa equipe de suporte via WhatsApp. Nossos atendentes estão disponíveis 24/7 para processar seu cancelamento.</p>
+                    <a href="https://wa.me/5511999999999?text=Olá,%20gostaria%20de%20solicitar%20o%20cancelamento%20do%20meu%20serviço" class="btn btn-whatsapp">
+                        <i class="fab fa-whatsapp"></i> Cancelar via WhatsApp
+                    </a>
+                </div>
+
+                <div class="cancelamento-card">
+                    <div class="cancelamento-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3>envie um e-mail</h3>
+                    <p>Envie um e-mail para cancelamento@fastproxy.com.br com o assunto "Solicitação de Cancelamento" informando os dados da sua conta.</p>
+                    <a href="mailto:cancelamento@fastproxy.com.br?subject=Solicitação%20de%20Cancelamento" class="btn btn-primary">
+                        <i class="fas fa-envelope"></i> Cancelar via E-mail
+                    </a>
+                </div>
+
+                <div class="cancelamento-card">
+                    <div class="cancelamento-icon">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <h3>formulário de cancelamento</h3>
+                    <p>Preencha nosso formulário de cancelamento online. Este é o método mais rápido para solicitar o cancelamento do seu serviço.</p>
+                    <button id="open-form" class="btn btn-primary">
+                        <i class="fas fa-file-alt"></i> Preencher Formulário
+                    </button>
+                </div>
+            </div>
+
+            <!-- Formulário de Cancelamento (oculto inicialmente) -->
+            <div id="cancelamento-form" style="display: none;">
+                <div class="form-container">
+                    <h3>Formulário de Cancelamento</h3>
+                    <form id="form-cancel">
+                        <div class="form-group">
+                            <label for="email">E-mail cadastrado</label>
+                            <input type="email" id="email" name="email" required placeholder="Seu e-mail">
+                        </div>
+                        <div class="form-group">
+                            <label for="proxy-id">ID do Proxy (opcional)</label>
+                            <input type="text" id="proxy-id" name="proxy-id" placeholder="Ex: PRX-12345">
+                        </div>
+                        <div class="form-group">
+                            <label for="motivo">Motivo do cancelamento</label>
+                            <select id="motivo" name="motivo" required>
+                                <option value="">Selecione um motivo</option>
+                                <option value="Problemas técnicos">Problemas técnicos</option>
+                                <option value="Preço elevado">Preço elevado</option>
+                                <option value="Não atende às necessidades">Não atende às necessidades</option>
+                                <option value="Encontrei alternativa melhor">Encontrei alternativa melhor</option>
+                                <option value="Não uso mais">Não uso mais</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="outro-motivo-group" style="display: none;">
+                            <label for="outro-motivo">Especifique o motivo</label>
+                            <textarea id="outro-motivo" name="outro-motivo" rows="3" placeholder="Descreva o motivo do cancelamento"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="feedback">Feedback para melhorias (opcional)</label>
+                            <textarea id="feedback" name="feedback" rows="4" placeholder="Compartilhe sua experiência e sugestões para melhorarmos"></textarea>
+                        </div>
+                        <div class="form-buttons">
+                            <button type="button" id="cancel-form" class="btn btn-secondary">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Enviar Solicitação</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Política de Cancelamento -->
+    <section class="cancelamento-policy">
+        <div class="container">
+            <div class="section-header">
+                <h2>nossa política de cancelamento</h2>
+                <p>entenda como funciona o processo de cancelamento na FastProxy</p>
+            </div>
+
+            <div class="policy-content">
+                <div class="policy-item">
+                    <h3><i class="fas fa-calendar-alt"></i> Prazo para processamento</h3>
+                    <p>Sua solicitação de cancelamento será processada em até 2 dias úteis. Você receberá uma confirmação por e-mail quando o cancelamento for concluído.</p>
+                </div>
+                
+                <div class="policy-item">
+                    <h3><i class="fas fa-money-bill-wave"></i> Reembolso proporcional</h3>
+                    <p>Se você cancelar durante o período pago, oferecemos reembolso proporcional ao tempo não utilizado, desde que o cancelamento ocorra nos primeiros 15 dias do ciclo de faturamento.</p>
+                </div>
+                
+                <div class="policy-item">
+                    <h3><i class="fas fa-sync-alt"></i> Ciclo de faturamento</h3>
+                    <p>O acesso ao serviço permanece ativo até o final do ciclo de faturamento atual, exceto em casos de violação dos termos de serviço.</p>
+                </div>
+                
+                <div class="policy-item">
+                    <h3><i class="fas fa-undo"></i> Reativação da conta</h3>
+                    <p>Caso mude de ideia, você pode reativar sua conta em até 30 dias após o cancelamento sem perder suas configurações.</p>
+                </div>
+            </div>
+
+            <div class="faq-more-questions">
+                <p>Ainda tem dúvidas sobre o cancelamento? Entre em contato com nosso suporte.</p>
+                <a href="index.html#contato" class="btn btn-primary">Falar com o Suporte</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <h3>tecnologia & segurança em meios de conexão</h3>
+                <a href="index.html#planos" class="btn btn-primary">pedir proxy</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 FastProxy</p>
+                <div class="footer-links">
+                    <a href="reembolso.html" class="reembolso-link">Política de Reembolso</a>
+                    <a href="cancelar.html" class="reembolso-link">Cancelamento</a>
+                </div>
+                <div class="social-media">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+                <a href="#" class="scroll-top">
+                    rolar para cima <i class="fas fa-arrow-up"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript para funcionalidades da página -->
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Botão para abrir o formulário
+            const openFormBtn = document.getElementById('open-form');
+            const cancelFormBtn = document.getElementById('cancel-form');
+            const formContainer = document.getElementById('cancelamento-form');
+            const motivoSelect = document.getElementById('motivo');
+            const outroMotivoGroup = document.getElementById('outro-motivo-group');
+            const formCancel = document.getElementById('form-cancel');
+            
+            // Abrir formulário
+            if (openFormBtn && formContainer) {
+                openFormBtn.addEventListener('click', function() {
+                    formContainer.style.display = 'block';
+                    // Animar entrada do formulário
+                    formContainer.style.opacity = '0';
+                    setTimeout(() => {
+                        formContainer.style.opacity = '1';
+                    }, 10);
+                    // Rolar até o formulário
+                    formContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+            }
+            
+            // Fechar formulário
+            if (cancelFormBtn && formContainer) {
+                cancelFormBtn.addEventListener('click', function() {
+                    formContainer.style.opacity = '0';
+                    setTimeout(() => {
+                        formContainer.style.display = 'none';
+                    }, 300);
+                });
+            }
+            
+            // Mostrar campo adicional se "Outro" for selecionado
+            if (motivoSelect && outroMotivoGroup) {
+                motivoSelect.addEventListener('change', function() {
+                    if (this.value === 'Outro') {
+                        outroMotivoGroup.style.display = 'block';
+                    } else {
+                        outroMotivoGroup.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Processar envio do formulário
+            if (formCancel) {
+                formCancel.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Simulação de envio
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+                    
+                    // Simulação de processamento
+                    setTimeout(() => {
+                        // Mostrar mensagem de sucesso
+                        formContainer.innerHTML = `
+                            <div class="success-message">
+                                <i class="fas fa-check-circle"></i>
+                                <h3>Solicitação Enviada com Sucesso!</h3>
+                                <p>Recebemos sua solicitação de cancelamento. Nossa equipe entrará em contato em até 24 horas.</p>
+                                <p>Um e-mail de confirmação foi enviado para o endereço fornecido.</p>
+                            </div>
+                        `;
+                    }, 1500);
+                });
+            }
+            
+            // Menu Mobile
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const mobileMenu = document.querySelector('.mobile-menu');
+            
+            if (mobileMenuBtn && mobileMenu) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    mobileMenuBtn.classList.toggle('active');
+                    mobileMenu.classList.toggle('active');
+                    document.body.classList.toggle('menu-open');
+                });
+            }
+            
+            // Fechar menu ao clicar em um link
+            const mobileLinks = document.querySelectorAll('.mobile-menu a');
+            
+            mobileLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenuBtn.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    document.body.classList.remove('menu-open');
+                });
+            });
+        });
+    </script>
+    
+    <style>
+        /* Estilos específicos para a página de cancelamento */
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 80px 0 50px;
+            text-align: center;
+            margin-top: 80px;
+        }
+        
+        .page-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .page-header p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+        
+        .cancelamento-content {
+            padding: 80px 0;
+        }
+        
+        .cancelamento-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-top: 50px;
+            justify-content: center;
+        }
+        
+        .cancelamento-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            flex: 1;
+            min-width: 280px;
+            max-width: 380px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .cancelamento-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .cancelamento-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        
+        .cancelamento-icon i {
+            font-size: 2rem;
+            color: white;
+        }
+        
+        .cancelamento-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: var(--text-color);
+        }
+        
+        .cancelamento-card p {
+            margin-bottom: 25px;
+            color: var(--text-secondary);
+        }
+        
+        .form-container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            max-width: 700px;
+            margin: 50px auto 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .form-container h3 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--text-color);
+            font-size: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+        
+        .form-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn-secondary {
+            background-color: #f5f5f5;
+            color: var(--text-color);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .success-message {
+            text-align: center;
+            padding: 30px 20px;
+        }
+        
+        .success-message i {
+            font-size: 4rem;
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+        
+        .success-message h3 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+        
+        .success-message p {
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+        }
+        
+        .cancelamento-policy {
+            background-color: #f9f9f9;
+            padding: 80px 0;
+        }
+        
+        .policy-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+        
+        .policy-item {
+            background: #fff;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+        }
+        
+        .policy-item h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .policy-item h3 i {
+            color: var(--primary-color);
+        }
+        
+        .policy-item p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        .faq-more-questions {
+            text-align: center;
+            margin-top: 50px;
+        }
+        
+        .faq-more-questions p {
+            margin-bottom: 20px;
+            color: var(--text-secondary);
+        }
+        
+        @media (max-width: 768px) {
+            .cancelamento-options {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .cancelamento-card {
+                max-width: 100%;
+            }
+            
+            .form-container {
+                padding: 30px 20px;
+            }
+            
+            .policy-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</body>
+</html> 
+</html> 
